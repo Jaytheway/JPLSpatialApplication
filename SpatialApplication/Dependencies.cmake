@@ -29,15 +29,8 @@ endfunction()
 
 function(fetch_MiniaudioCpp)
     if (NOT TARGET JPL::MiniaudioCpp)
-        CPMAddPackage(
-            NAME MiniaudioCpp
-            GITHUB_REPOSITORY Jaytheway/MiniaudioCpp
-            GIT_TAG main
-            GIT_SUBMODULES_RECURSE YES
-            GIT_SHALLOW TRUE
-            DOWNLOAD_ONLY YES
-        )
-        set(MiniaudioCpp_SOURCE_DIR "${MiniaudioCpp_SOURCE_DIR}" PARENT_SCOPE)
+        set(MINIAUDIOCPP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/MiniaudioCpp/MiniaudioCpp")
+        add_subdirectory("${MINIAUDIOCPP_DIR}" "${CMAKE_BINARY_DIR}/MiniaudioCpp/MiniaudioCpp")  
     endif()
 endfunction()
 
@@ -126,8 +119,6 @@ function(jpl_setup_dependencie)
 
     # === MiniaudioCpp ===
     fetch_MiniaudioCpp()
-    set(MINIAUDIOCPP_SRC_DIR "${MiniaudioCpp_SOURCE_DIR}")
-    include("vendor/MiniaudioCpp/MiniaudioCpp.cmake")
 
     # === implot ===
     fetch_implot()
