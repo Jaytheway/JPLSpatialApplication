@@ -31,7 +31,7 @@ namespace JPL
 	{
 		using namespace JPL::ImGuiEx;
 
-		Child(directory.GetPath().string().c_str(), [&]
+		Child("##DirectoryDisplay", [&]
 		{
 			ImGui::Spacing();
 			ImGui::Spacing();
@@ -88,21 +88,24 @@ namespace JPL
 			ImGui::Separator();
 			ImGui::Spacing();
 
-			const auto& selectedFile = directory.GetSelectedFile();
-
-			auto drawEntry = [&](const std::filesystem::path& path)
+			Child("##FilesList", [&]
 			{
-				bool selected = path == selectedFile;
+				const auto& selectedFile = directory.GetSelectedFile();
 
-				if (ImGui::Selectable(path.string().c_str(), &selected))
-					directory.SetSelectedFile(path);
-			};
+				auto drawEntry = [&](const std::filesystem::path& path)
+				{
+					bool selected = path == selectedFile;
 
-			for (const auto& entry : directory.GetFiles())
-			{
-				ScopedColour itemBg(ImGuiCol_Header, ImGui::GetColorU32(ImGuiCol_TabSelectedOverline, 0.5f));
-				drawEntry(entry);
-			}
+					if (ImGui::Selectable(path.string().c_str(), &selected))
+						directory.SetSelectedFile(path);
+				};
+
+				for (const auto& entry : directory.GetFiles())
+				{
+					ScopedColour itemBg(ImGuiCol_Header, ImGui::GetColorU32(ImGuiCol_TabSelectedOverline, 0.5f));
+					drawEntry(entry);
+				}
+			});
 		});
 	}
 
@@ -167,6 +170,11 @@ namespace JPL
 			{
 				mFiles.push_back(std::filesystem::relative(path, mPath));
 			}
+		}
+
+		if (errorCode)
+		{
+			JPL_ERROR_TAG("Directory", errorCode.message());
 		}
 
 		if (std::find(mFiles.begin(), mFiles.end(), mSelectedFile.filename()) == mFiles.end())
