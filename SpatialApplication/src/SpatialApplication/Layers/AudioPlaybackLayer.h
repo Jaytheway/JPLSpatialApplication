@@ -92,7 +92,7 @@ namespace JPL
 		void ApplyDirectEffectParams();
 
 	private:
-		Directory mDirectory{ "assets\\test sounds" };
+		Directory mDirectory{ "assets\\sound sources" };
 		std::unique_ptr<AudioPlayer> mPlayer{ nullptr };
 		std::unique_ptr<Effect> mERBus{ nullptr };
 
