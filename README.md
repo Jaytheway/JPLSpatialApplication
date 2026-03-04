@@ -71,7 +71,7 @@ The GUI is drawn using [Dear ImGui](https://github.com/ocornut/imgui) library wi
 - [Walnut (CMake fork)](https://github.com/Jaytheway/WalnutCMake) - platfom window handling and some application utilities - [MIT license](https://github.com/Jaytheway/WalnutCMake/blob/master/LICENSE.txt)
 
 ## License
-The project is distributed under the [LICENSE](LICENSE).
+The project is distributed under the [ISC license](LICENSE).
 
 ### Third-Party Assets
 - **JPL Spatial Application** uses [IBM Plex Sans](https://fonts.google.com/specimen/IBM+Plex+Sans) font licensed under the [SIL Open Font License 1.1](licenses/OFL.txt).
