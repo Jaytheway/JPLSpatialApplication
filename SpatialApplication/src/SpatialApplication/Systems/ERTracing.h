@@ -166,6 +166,9 @@ namespace JPL
             Vec3 Position; //? temp for testing
             uint32_t Id;
         };
+
+        using SourceData = Listener;
+        using ReceiverData = Source;
     public:
         using Vec3 = JPL::MinimalVec3;
 
@@ -184,15 +187,24 @@ namespace JPL
 
         // SceneInterface
         bool Intersect(const Ray& ray, Intersection& outIntersection) const;
+        bool Intersect(const Ray& ray, float maxRayLength, Intersection& outIntersection) const;
         bool Intersect(const Vec3& posA, const Vec3& posB, Intersection& outIntersection) const;
         bool IsOccluded(const Vec3&, const Vec3&) const;
         float GetMaterialFactor(int) const;
-        bool GetMaterialAbsorption(int surfaceId, JPL::EnergyBands& outAbsorption) const;
-        Vec3 GetSourcePosition(int) const { return mSource.Position; }
+        bool GetMaterialAbsorption(int surfaceId, EnergyBands& outAbsorption) const;
+        bool GetMaterialAbsorption(const TraceNode<Intersection>& newMaterial, EnergyBands& outAbsorption) const;
+        Vec3 GetSourcePosition(int) const { return mListener.Position; } // we do backtracing, so these are backwards
+        Vec3 GetReceiverPosition(int) const { return mSource.Position; }
         Vec3 GetListenerPosition(int) const { return mListener.Position; }
         bool GetSurfacePlane(int surfaceId, Vec3& planeNormal, Vec3& planePoint) const;
 
-        void SetSurfaceMaterial(const JPL::AcousticMaterial& newMaterial);
+        void SetSurfaceMaterial(const AcousticMaterial& newMaterial);
+
+        static inline bool IsSameSurface(const Intersection& a, const Intersection b);
+        void CacheSubpath(std::span<const TraceNode<Intersection>> subpath, std::span<int32> nodeCache);
+        inline uint32 GetHash(const Intersection& intersection) const { return intersection.SurfaceID; }
+        inline Vec3 GetPosition(const Intersection& intersection) const { return intersection.Position; }
+        inline Vec3 GetNormal(const Intersection& intersection) const { return intersection.Normal; }
 
         // Validate visibility of the reflected image source from the reciever
         static inline bool ValidatePath(

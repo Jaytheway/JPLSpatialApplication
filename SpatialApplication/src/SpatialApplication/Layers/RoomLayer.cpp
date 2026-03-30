@@ -180,15 +180,20 @@ namespace JPL
 		{
 			const auto& cache = mERTracer.GetCache();
 
-			cache.ForEachValidPath([&](const JPL::SpecularPathId& pathId, const JPL::SpecularPathData<JPL::MinimalVec3>& path)
+			const auto sourcePosition = mRoom.GetSourceAbsPosition();
+
+			for (auto&& [pathId, path] : cache.GetValidPaths())
 			{
 				auto& newTap = mTaps.emplace_back();
 
-				const float pathLength = Length(path.ImageSource);
+				// WHen we do backtracing the last IS is the listerer to the source, so we flip the direction
+				const MinimalVec3 imageSource = sourcePosition - path.ImageSource;
+
+				const float pathLength = Length(imageSource);
 				const float invDistance = 1.0f / pathLength;
 
 				const float pathTime = pathLength * JPL::JPL_INV_SPEAD_OF_SOUND;
-				const auto direction = path.ImageSource * invDistance;
+				const auto direction = imageSource * invDistance;
 
 				newTap.Gains.resize(numChannels);
 				mERPanner->GetSpeakerGains(direction, newTap.Gains);
@@ -198,7 +203,7 @@ namespace JPL
 				newTap.FilterGains = dBToGain(-path.Energy);
 				newTap.Delay = pathTime;
 				newTap.Id = pathId.Id;
-			});
+			}
 		}
 
 		Broadcast<&ChangeListenerType::OnTapsUpdated>(mTaps);

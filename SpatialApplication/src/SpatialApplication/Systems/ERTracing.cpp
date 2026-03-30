@@ -54,6 +54,11 @@ namespace JPL
 		return IntersectImpl(ray, outIntersection);
 	}
 
+	bool ERTracer::Intersect(const Ray& ray, float maxRayLength, Intersection& outIntersection) const
+	{
+		return IntersectImpl(ray, outIntersection, maxRayLength);
+	}
+
 	bool ERTracer::Intersect(const Vec3& posA, const Vec3& posB, Intersection& outIntersection) const
 	{
 		const Vec3 line = posB - posA;
@@ -74,7 +79,14 @@ namespace JPL
 		return 0.6f; // 0 results in fully specular reflections
 	}
 
-	bool ERTracer::GetMaterialAbsorption(int surfaceId, JPL::EnergyBands& outAbsorption) const
+	bool ERTracer::GetMaterialAbsorption(int surfaceId, EnergyBands& outAbsorption) const
+	{
+		JPL_ASSERT(mSurfaceMaterial != nullptr);
+		outAbsorption = mSurfaceMaterial->Coeffs;
+		return true;
+	}
+
+	bool ERTracer::GetMaterialAbsorption(const TraceNode<Intersection>& newMaterial, EnergyBands& outAbsorption) const
 	{
 		JPL_ASSERT(mSurfaceMaterial != nullptr);
 		outAbsorption = mSurfaceMaterial->Coeffs;
@@ -97,9 +109,25 @@ namespace JPL
 		return true;
 	}
 
-	void ERTracer::SetSurfaceMaterial(const JPL::AcousticMaterial& newMaterial)
+	void ERTracer::SetSurfaceMaterial(const AcousticMaterial& newMaterial)
 	{
 		mSurfaceMaterial = &newMaterial;
+	}
+
+	inline bool ERTracer::IsSameSurface(const Intersection& a, const Intersection b)
+	{
+		return a.SurfaceID == b.SurfaceID
+			&& a.Material == b.Material;
+	}
+
+	void ERTracer::CacheSubpath(std::span<const TraceNode<Intersection>> subpath, std::span<int32> nodeCache)
+	{
+		JPL_ASSERT(subpath.size() == nodeCache.size());
+
+		for (uint32 n = 0; n < subpath.size(); ++n)
+		{
+			nodeCache[n] = subpath[n].Hash;
+		}
 	}
 
 	ERTracer::ERTracer()
@@ -119,9 +147,22 @@ namespace JPL
 
 	void ERTracer::Trace(uint32_t numPrimaryRays, uint32_t maxOrder)
 	{
-		//mCache.Validate(*this);
+		mCache.Validate(*this);
 
-		mTracer.Trace(*this, numPrimaryRays, mSource, std::span(&mListener, 1), maxOrder, mCache);
+		const TraceParameters parameters
+		{
+			.NumPrimaryRays = numPrimaryRays,
+			.MaxTraceOrder = maxOrder,
+			.MaxRayLength = 10'000.0f
+		};
+
+		TraceResults<Intersection> traceResults;
+		mTracer.Trace(*this, mListener.Position, parameters, traceResults);
+
+		auto* cachePtr = &mCache;
+		std::span cacheAdapter(&cachePtr, 1);
+		std::span receivers(&mSource, 1);
+		mTracer.ProcessTraces(*this, mListener, traceResults, receivers, cacheAdapter);
 	}
 
 	void ERTracer::OnListenerChanged(const Vec3& listener)
