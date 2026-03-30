@@ -1,3 +1,7 @@
 [submodule "SpatialApplication/vendor/MiniaudioCpp"]
 	path = SpatialApplication/vendor/MiniaudioCpp
 	url = https://github.com/Jaytheway/MiniaudioCpp
+
+[submodule "SpatialApplication/vendor/JPLSpatial"]
+	path = SpatialApplication/vendor/JPLSpatial
+	url = https://github.com/Jaytheway/JPLSpatial
