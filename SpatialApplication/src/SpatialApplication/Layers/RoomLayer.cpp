@@ -180,14 +180,13 @@ namespace JPL
 		{
 			const auto& cache = mERTracer.GetCache();
 
-			const auto sourcePosition = mRoom.GetSourceAbsPosition();
+			const auto listenerPosition = mRoom.GetListenerAbsPosition();
 
 			for (auto&& [pathId, path] : cache.GetValidPaths())
 			{
 				auto& newTap = mTaps.emplace_back();
 
-				// WHen we do backtracing the last IS is the listerer to the source, so we flip the direction
-				const MinimalVec3 imageSource = sourcePosition - path.ImageSource;
+				const MinimalVec3 imageSource = path.ImageSource - listenerPosition;
 
 				const float pathLength = Length(imageSource);
 				const float invDistance = 1.0f / pathLength;
