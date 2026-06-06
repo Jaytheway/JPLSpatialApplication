@@ -34,6 +34,31 @@ function(fetch_MiniaudioCpp)
     endif()
 endfunction()
 
+function(fetch_FFTConvolver)
+    if (NOT TARGET FFTConvolver)
+        CPMAddPackage(
+            NAME FFTConvolver
+            GITHUB_REPOSITORY falkTX/FFTConvolver
+            GIT_TAG non-uniform
+            GIT_SUBMODULES_RECURSE YES
+            GIT_SHALLOW TRUE
+            DOWNLOAD_ONLY YES
+        )
+        add_library(FFTConvolver INTERFACE)
+        set(FFTCONVOLVER_SOURCES
+            "${FFTConvolver_SOURCE_DIR}/AudioFFT.h"
+            "${FFTConvolver_SOURCE_DIR}/AudioFFT.cpp"
+        )
+        target_sources(FFTConvolver INTERFACE
+           ${FFTCONVOLVER_SOURCES}
+        )
+        target_include_directories(FFTConvolver INTERFACE
+            "${FFTConvolver_SOURCE_DIR}"
+        )
+        set(FFTConvolver_SOURCES "${FFTCONVOLVER_SOURCES}" PARENT_SCOPE)
+    endif()
+endfunction()
+
 function(fetch_implot)
     if (NOT TARGET implot)
         CPMAddPackage(
@@ -119,6 +144,10 @@ function(jpl_setup_dependencie)
 
     # === MiniaudioCpp ===
     fetch_MiniaudioCpp()
+    
+    # === FFTConvolver ===
+    fetch_FFTConvolver()
+    source_group("vendor\\FFTConvolver" FILES ${FFTConvolver_SOURCES})
 
     # === implot ===
     fetch_implot()
@@ -165,6 +194,7 @@ function(jpl_setup_dependencie)
         implot
         ImGuiFileDialog
         Fonts
+        FFTConvolver
     )
 
     walnut_apply_defines(JPLSpatialApplication)
