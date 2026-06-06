@@ -33,6 +33,7 @@
 
 #include "Model/VBAPVisualizationModel.h"
 #include "Model/DirectSoundModel.h"
+#include "Model/LateReverbModel.h"
 
 #include "Layers/AudioPlaybackLayer.h"
 #include "Layers/RoomLayer.h"
@@ -154,6 +155,13 @@ namespace JPL
 			// This may be called after OnTapsUpdated, or not, it doesn't matter.
 			mAudioPlaybackLayer->OnChange(mAudioPlaybackLayer->GetVBAPModel().get());
 		}
+
+		virtual void OnReverbTimeUpdated(const simd& newRT60) override
+		{
+			// Update late reverb processor parameters
+			mAudioPlaybackLayer->GetLateReverbModel().lock()->T60.Set(newRT60);
+		}
+
 
 		static void DrawJPLSpatialApplicationLogo(ImVec2 titlebarMin, ImVec2 titlebarMax)
 		{
