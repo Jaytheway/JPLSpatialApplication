@@ -1,12 +1,12 @@
 ﻿//
 //      ██╗██████╗     ██╗     ██╗██████╗ ███████╗
-//      ██║██╔══██╗    ██║     ██║██╔══██╗██╔════╝		** JPL Spatial Application **
+//      ██║██╔══██╗    ██║     ██║██╔══██╗██╔════╝		** JPLSpatialApplication **
 //      ██║██████╔╝    ██║     ██║██████╔╝███████╗
-// ██   ██║██╔═══╝     ██║     ██║██╔══██╗╚════██║		https://github.com/Jaytheway/JPLSpatial
+// ██   ██║██╔═══╝     ██║     ██║██╔══██╗╚════██║		https://github.com/Jaytheway/JPLSpatialApplication
 // ╚█████╔╝██║         ███████╗██║██████╔╝███████║
 //  ╚════╝ ╚═╝         ╚══════╝╚═╝╚═════╝ ╚══════╝
 //
-//   Copyright Jaroslav Pevno, JPL Spatial Application is offered under the terms of the ISC license:
+//   Copyright 2026 Jaroslav Pevno, JPLSpatialApplication is offered under the terms of the ISC license:
 //
 //   Permission to use, copy, modify, and/or distribute this software for any purpose with or
 //   without fee is hereby granted, provided that the above copyright notice and this permission
@@ -19,18 +19,10 @@
 
 #pragma once
 
-#ifndef IMGUI_DEFINE_MATH_OPERATORS
-#define IMGUI_DEFINE_MATH_OPERATORS
-#endif
-#include <imgui.h>
-#include <imgui_internal.h>
+#include "ImGui/ImGui.h"
 
-#include "ImGui/Colour.h"
-#include "ImGui/ImGuiStyling.h"
-#include "ImGui/ImGuiLayout.h"
-#include "ImGui/ImGuiUtils.h"
-#include "ImGui/ImGuiScopedUtils.h"
-#include "ImGui/ImGuiWidgets.h"
-#include "ImGui/ImGuiDraw.h"
-#undef min
-#undef max
+namespace JPL::ImGuiEx
+{
+	static void DrawArrow(ImDrawList& drawList, const ImVec2& lineStart, const ImVec2& lineEnd, ImU32 colour, float arrowSize = 12.0f);
+
+} // namespace JPL::ImGuiEx
