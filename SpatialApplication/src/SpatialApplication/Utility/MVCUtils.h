@@ -238,4 +238,32 @@ namespace JPL
 	{
 		(property.RemoveChangeCallback(&listener), ...);
 	}
+
+	namespace Coro
+	{
+		/// Coroutine Awaiter for property update.
+		/// Returns if the data was updated even if awaiter constructed after the udpate.
+		/// Uses DataUpdate<T> "dirty" flag
+		/// 
+		/// Make sure the property outlives the awaitable object.
+		template<class T>
+		class PropertyUpdate final : public DataUpdate<T>
+		{
+		public:
+			explicit PropertyUpdate(Property<T>& property)
+				: mProperty(&property)
+			{
+				mProperty->AddChangeCallback<&PropertyUpdate<T>::SetData>(this);
+				DataUpdate<T>::SetData(mProperty->Get()); // set initial data
+			}
+
+			~PropertyUpdate()
+			{
+				mProperty->RemoveChangeCallback(this);
+			}
+
+		private:
+			Property<T>* mProperty;
+		};
+	} // namespace Coro
 } // namespace JPL
