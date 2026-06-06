@@ -187,15 +187,9 @@ namespace JPL
             {
                 ScopedItemWidth width(200.0f);
 
-                {
-                    ScopedItemOutline outline("Focus");
+                const SliderConfig sliderConfig{ .Fmt = "%.2f" };
 
-                    float focus = mModel.VBAPModel->Focus.Get();
-                    if (ImGui::SliderFloat("Focus", &focus, 0.0f, 1.0f, "%.2f"))
-                    {
-                        mModel.VBAPModel->Focus.Set(focus);
-                    }
-                }
+                Slider("Focus", mModel.VBAPModel->Focus, 0.0f, 1.0f, sliderConfig);
 
                 {
                     // If set to calculate spread from source size,
@@ -210,18 +204,12 @@ namespace JPL
                             ScopedDisable _(true);
 
                             float spread = JPL::GetSpreadFromSourceSize(mModel.VBAPModel->SourceSize.Get(), distance);
-                            ImGui::SliderFloat("Spread", &spread, 0.0f, 1.0f, "%.2f");
+                            Slider("Spread", spread, 0.0f, 1.0f, sliderConfig);
                         }
                     }
                     else
                     {
-                        ScopedItemOutline outline("Spread");
-
-                        float spread = mModel.VBAPModel->Spread.Get();
-                        if (ImGui::SliderFloat("Spread", &spread, 0.0f, 1.0f, "%.2f"))
-                        {
-                            mModel.VBAPModel->Spread.Set(spread);
-                        }
+                        Slider("Spread", mModel.VBAPModel->Spread, 0.0f, 1.0f, sliderConfig);
                     }
                 }
 
@@ -229,13 +217,7 @@ namespace JPL
                 {
                     //ScopedDisable disableIf(not mModel.VBAPModel->SpreadFromSourceSize.Get());
 
-                    ScopedItemOutline outline("Source Size");
-
-                    float sourceSize = mModel.VBAPModel->SourceSize.Get();
-                    if (ImGui::SliderFloat("Source Size", &sourceSize, 0.1f, 100.0f, "%.1f"))
-                    {
-                        mModel.VBAPModel->SourceSize.Set(sourceSize);
-                    }
+                    Slider("Source Size", mModel.VBAPModel->SourceSize, 0.1f, 100.0f, SliderConfig{ .Fmt = "%.1f" });
                 }
 
                 ImGui::Spacing();
@@ -314,13 +296,14 @@ namespace JPL
                            "Disabling is meant for checking out visualization for the channel\n"
                            "layouts not available on the user system.");
 
-                ImGui::Checkbox("Show Speakers", &bDrawSpeakers);
+                {
+                    ScopedItemOutline outline("Show Speakers");
+                    ImGui::Checkbox("Show Speakers", &bDrawSpeakers);
+                }
             });
         });
 
-
-        ImGui::Spacing();
-        ImGui::Spacing();
+        Layout<Spacer, Spacer>();
 
         const ImVec2 availableSpace = ImGui::GetContentRegionAvail();
         const float axisSize = ImMax((availableSpace.x - ImGui::GetStyle().WindowPadding.x) * 0.5f, 4.0f);
