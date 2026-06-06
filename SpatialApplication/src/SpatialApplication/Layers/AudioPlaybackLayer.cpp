@@ -6,7 +6,7 @@
 // ╚█████╔╝██║         ███████╗██║██████╔╝███████║
 //  ╚════╝ ╚═╝         ╚══════╝╚═╝╚═════╝ ╚══════╝
 //
-//   Copyright Jaroslav Pevno, JPL Spatial Application is offered under the terms of the ISC license:
+//   Copyright Jaroslav Pevno 2026, JPL Spatial Application is offered under the terms of the ISC license:
 //
 //   Permission to use, copy, modify, and/or distribute this software for any purpose with or
 //   without fee is hereby granted, provided that the above copyright notice and this permission
@@ -19,13 +19,17 @@
 
 #include "AudioPlaybackLayer.h"
 
+#include "Config.h"
+
 #include "Controller/AudioPlayer.h"
 #include "Utility/PerformanceMetering.h"
 #include "ImGui/ImGui.h"
 
 #include <JPLSpatial/Core.h>
 #include <JPLSpatial/ErrorReporting.h>
+#include <JPLSpatial/AirAbsorption.h>
 #include <MiniaudioCpp/MiniaudioWrappers.h>
+#include <JPLSpatial/Auralization/LateReverb.h>
 #include <JPLSpatial/Math/DecibelsAndGain.h>
 #include <JPLSpatial/Math/Position.h>
 #include <JPLSpatial/Math/SIMD.h>
@@ -36,6 +40,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <ranges>
+
+#undef max
+#undef min
 
 namespace JPL
 {
@@ -94,6 +103,27 @@ namespace JPL
 
 		mERProcessor = std::make_unique<JPL::ERBus>();
 		mERProcessor->Prepare(mSampleRate, numEngineChannels);
+
+		mLateReverb = std::make_unique<ReverbBus>();
+		mLateReverb->SetRT60(mLateReverbModel->T60.Get());
+		mLateReverb->Prepare(mSampleRate);
+		mLateReverbModel->T60.AddChangeCallback(this, [](AudioPlaybackLayer* self, const simd& v)
+		{
+			if (self->mLateReverb)
+				self->mLateReverb->SetRT60(v);
+		});
+		mLateReverbModel->DryLevel.AddChangeCallback(this, [](AudioPlaybackLayer* self, const float& v)
+		{
+			self->mERLevel.store(v, std::memory_order_release);
+		});
+		mLateReverbModel->WetLevel.AddChangeCallback(this, [](AudioPlaybackLayer* self, const float& v)
+		{
+			self->mLateReverbLevel.store(v, std::memory_order_release);
+		});
+		mERLevel = mLateReverbModel->DryLevel.Get();
+		mLateReverbLevel = mLateReverbModel->WetLevel.Get();
+
+		//SetupImpulseSource();
 
 		mPlayer = std::make_unique<AudioPlayer>();
 		mPlayer->SetLooping(true);
@@ -155,6 +185,22 @@ namespace JPL
 				});
 			});
 		}); // Audio Player
+
+		Window("Late Reverb", { .Flags = ImGuiWindowFlags_NoCollapse }, [&]
+		{
+			/*if (ImGui::Button("Impulse"))
+			{
+				if (mImpulseSource)
+				{
+					mSendImpulse.store(true, std::memory_order_release);
+				}
+			}*/
+
+			if (mLateReverbGUI)
+			{
+				mLateReverbGUI->Draw();
+			}
+		});
 
 		const WindowConfig config
 		{
@@ -333,6 +379,10 @@ namespace JPL
 			mERProcessor->SetTaps(mTaps);
 		}
 
+		mLateReverb = std::make_unique<ReverbBus>();
+		mLateReverb->SetRT60(mLateReverbModel->T60.Get());
+		mLateReverb->Prepare(mSampleRate);
+
 		mERBus = std::make_unique<Effect>(numSourceChannels, numOutChannels, [this](JPL::ProcessCallbackData& callback)
 		{
 			// Clear the output first
@@ -346,10 +396,52 @@ namespace JPL
 			std::span<const float> inData(input.data.data, numFrames * numInChannels);
 			std::span<float> outData(output.data.data, numFrames * numOutChannels);
 
+			// Downmix input to mono
+			StaticArray<float, 4048> bufferIn(numFrames, 0.0f);
+			StaticArray<float, 4048> bufferOut(outData.size(), 0.0f);
+
+			DownmixToMono(bufferIn.data(), inData.data(), numInChannels, inData.size());
+			// Normalize downmixed frames
+			ApplyGain(bufferIn.data(), bufferIn.size(), 1.0f / numInChannels);
+
+			const float ERLevel = mERLevel.load(std::memory_order_acquire);
+			const float reverbLevel = mLateReverbLevel.load(std::memory_order_acquire);
+
+#if JPL_DEV_DIRECT_TO_LR
 			{
 				const auto timer = PerfMeterAudioCallback::MakeScopedTimer();
-				mERProcessor->ProcessInterleaved(inData, outData, numInChannels, numFrames);
+				mLateReverb->ProcessInterleaved(std::span(bufferIn), outData, numFrames);
+				ApplyGain(outData.data(), outData.size(), reverbLevel);
 			}
+#else
+			{
+				// Process ERs
+				const auto timer = PerfMeterAudioCallback::MakeScopedTimer();
+				mERProcessor->ProcessInterleaved(std::span(bufferIn), outData, 1, numFrames);
+
+				// TODO: proper mixing ER -> Reverb
+
+				// Make a copy of ER output at full volume
+				std::ranges::fill(bufferIn, 0.0f);
+				bufferIn.resize(outData.size(), 0.0f);
+				std::ranges::copy(outData, bufferIn.begin());
+				
+				// Apply ER level
+				ApplyGain(outData.data(), outData.size(), ERLevel);
+
+				// Process ER copy with Late Reverb
+				mLateReverb->ProcessInterleaved(bufferIn, bufferOut, numFrames);
+
+				// Apply reverb level
+				ApplyGain(bufferOut.data(), bufferOut.size(), reverbLevel);
+
+				// Mix in Reverb to the output
+				for (uint32 c = 0; c < numOutChannels; ++c)
+				{
+					Add(outData.data(), bufferOut.data(), c, c, numOutChannels, numOutChannels, numFrames);
+				}
+			}
+#endif
 		});
 
 		// --- Routing
@@ -385,8 +477,11 @@ namespace JPL
 		mERProcessor = nullptr;
 		mDirectEffectBus = nullptr;
 		mDirectEffectProcessor = nullptr;
-
+		mReverbEffectBus = nullptr;
+		mLateReverb = nullptr;
+		mImpulseSource = nullptr;
 	}
+
 	void AudioPlaybackLayer::UpdateDirectSoundParameters()
 	{
 		if (mPlayer == nullptr || not mSourceLayoutHandle)
@@ -428,8 +523,7 @@ namespace JPL
 
 		if (mDirectSoundModel->EnableAirAbsorption.Get())
 		{
-			JPL::simd airAbsorptionLoss;
-			JPL::AirAbsorption::ComputeForDistance(distance, airAbsorptionLoss);
+			const JPL::simd airAbsorptionLoss = JPL::AirAbsorption::ComputeForDistance(distance, cDefaultAirAbsCache);
 			// this overrides `airAbsorptionLoss` param, don't put it at the end
 			mFilterGains = JPL::dBToGain(-airAbsorptionLoss);
 		}
@@ -454,6 +548,66 @@ namespace JPL
 		if (mDirectEffectProcessor)
 		{
 			mDirectEffectProcessor->UpdateParameters(mFilterGains, mDelayTime, mChannelMixMap);
+		}
+	}
+
+	void AudioPlaybackLayer::SetupImpulseSource()
+	{
+		// TODO: temporarily setting up reverb only for impulse sygnal
+		mLateReverb = std::make_unique<ReverbBus>();
+		mLateReverb->SetRT60(mLateReverbModel->T60.Get());
+		mLateReverb->Prepare(mSampleRate);
+
+#if 0 //JPL_DBG_CONTROLS
+		mLateReverbModel->DryLevel.AddChangeCallback(this, [](AudioPlaybackLayer* self, const float& v)
+		{
+			self->mLateReverb->SetDryLevel(v);
+		});
+		mLateReverbModel->WetLevel.AddChangeCallback(this, [](AudioPlaybackLayer* self, const float& v)
+		{
+			self->mLateReverb->SetWetLevel(v);
+		});
+#endif
+	
+		const uint32_t numOutChannels = GetMAEngine().GetEndpointBus().GetNumChannels();
+
+		mImpulseSource = std::make_unique<Effect>(1, numOutChannels, [this](JPL::ProcessCallbackData& callback)
+		{
+			// Clear the output first
+			callback.FillOutputWithSilence();
+
+			if (mSendImpulse.exchange(false, std::memory_order_acq_rel))
+			{
+				auto output = callback.GetOutputBuffer(0);
+				const uint32_t numOutChannels = output.getNumChannels();
+
+				for (uint32 ch = 0; ch < numOutChannels; ++ch)
+					output.getChannel(ch).data.data[0] = 1.0f;
+			}
+		});
+
+		mReverbEffectBus = std::make_unique<Effect>(numOutChannels, [this](JPL::ProcessCallbackData& callback)
+		{
+			// Clear the output first
+			callback.FillOutputWithSilence();
+
+			auto input = callback.GetInputBuffer(0);
+			auto output = callback.GetOutputBuffer(0);
+			const uint32_t numInChannels = input.getNumChannels();
+			const uint32_t numOutChannels = output.getNumChannels();
+			const uint32_t numFrames = callback.GetOutputFrameCount();
+			std::span<const float> inData(input.data.data, numFrames * numInChannels);
+			std::span<float> outData(output.data.data, numFrames * numOutChannels);
+
+			{
+				//const auto timer = PerfMeterAudioCallback::MakeScopedTimer();
+				mLateReverb->ProcessInterleaved(inData, outData, numFrames);
+			}
+		});
+
+		if (JPL_ENSURE(mImpulseSource->GetOutput().AttachTo(mReverbEffectBus->GetInput())))
+		{
+			JPL_ENSURE(mReverbEffectBus->GetOutput().AttachTo(mMeterProcessor->GetInput()));
 		}
 	}
 } // namespace JPL

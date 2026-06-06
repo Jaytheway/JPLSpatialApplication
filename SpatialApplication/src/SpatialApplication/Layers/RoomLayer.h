@@ -24,6 +24,7 @@
 #include "GUI/RoomView.h"
 #include "Model/RoomModel.h"
 #include "Model/DirectSoundModel.h"
+#include "Model/LateReverbModel.h"
 #include "Systems/ERTracing.h"
 #include "Utility/MVCUtils.h"
 #include "Processing/Panner.h"
@@ -45,11 +46,12 @@ namespace JPL
 		virtual void OnTapsUpdated(const std::vector<typename JPL::ERBus::ERUpdateData>& taps) {}
 		virtual void OnSourceChanged(const JPL::MinimalVec3& sourcePosition) {}
 		virtual void OnRoomSizeChanged(const JPL::MinimalVec3& newRoomSize) {}
+		virtual void OnReverbTimeUpdated(const simd& newRT60) {}
 	};
 
 
 	class RoomLayer : public Walnut::Layer
-		, public ChangeBroadcaster<RoomLayer>
+					, public ChangeBroadcaster<RoomLayer>
 	{
 	public:
 		explicit RoomLayer(std::shared_ptr<JPL::DirectSoundModel> directSoundModel);
@@ -67,13 +69,15 @@ namespace JPL
 		RoomModel& GetModel() { return mRoom; }
 		void SetSourceSize(float newSize);
 
+		const simd& GetReverbTime() const { return mRT60; }
+
 	private:
 		void OnListenerChanged(const typename RoomModel::ListenerData& listener);
 		void OnSourceChanged(const typename RoomModel::SourceData& source);
 		void OnRoomSizeChanged(const typename RoomModel::RoomSizeData& room);
 		void OnSurfaceMaterialChanged(const JPL::AcousticMaterial* newMaterial);
 		void UpdateTaps();
-
+		void UpdateReverbTime();
 	private:
 		RoomModel mRoom;
 		RoomView mRoomView{ mRoom };
@@ -83,5 +87,6 @@ namespace JPL
 		ERTracer mERTracer;
 		std::vector<typename JPL::ERBus::ERUpdateData> mTaps;
 		std::unique_ptr<JPLPanner> mERPanner{ nullptr };
+		simd mRT60{ 1.0f };
 	};
 } // namespace JPL

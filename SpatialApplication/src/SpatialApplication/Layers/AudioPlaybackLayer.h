@@ -6,7 +6,7 @@
 // ╚█████╔╝██║         ███████╗██║██████╔╝███████║
 //  ╚════╝ ╚═╝         ╚══════╝╚═╝╚═════╝ ╚══════╝
 //
-//   Copyright Jaroslav Pevno, JPL Spatial Application is offered under the terms of the ISC license:
+//   Copyright Jaroslav Pevno 2026, JPL Spatial Application is offered under the terms of the ISC license:
 //
 //   Permission to use, copy, modify, and/or distribute this software for any purpose with or
 //   without fee is hereby granted, provided that the above copyright notice and this permission
@@ -21,11 +21,14 @@
 
 #include <Walnut/Layer.h>
 
+#include "ImGui/ImGui.h"
 #include "GUI/DirectoryDisplay.h"
 #include "GUI/AudioPlayerGUI.h"
+#include "GUI/LateReverbGUI.h"
 #include "GUI/LoudnessMeter.h"
 #include "Model/VBAPModel.h"
 #include "Model/DirectSoundModel.h"
+#include "Model/LateReverbModel.h"
 #include "Processing/Effect.h"
 #include "Processing/Panner.h"
 #include "Processing/RMSMeter.h"
@@ -48,6 +51,7 @@ namespace JPL
 {
 	struct Sound;
 	class AudioPlaybackLayer;
+	class ReverbBus;
 
 	template<>
 	class ChangeListener<AudioPlaybackLayer>
@@ -78,6 +82,8 @@ namespace JPL
 		std::shared_ptr<VBAPModel> GetVBAPModel() { return mVBAPModel; }
 		void SetVBAPModel(std::shared_ptr<VBAPModel> newModel);
 
+		std::weak_ptr<LateReverbModel> GetLateReverbModel() { return mLateReverbModel; }
+
 		virtual void OnChange(GenericChangeBroadcaster* broadcaster) override;
 
 		virtual void OnAudioFileChanged(const std::filesystem::path& newAudioFile);
@@ -90,6 +96,8 @@ namespace JPL
 
 		void UpdateDirectSoundParameters();
 		void ApplyDirectEffectParams();
+
+		void SetupImpulseSource();
 
 	private:
 		Directory mDirectory{ "assets\\sound sources" };
@@ -112,6 +120,16 @@ namespace JPL
 		// Early Reflection stuff
 		std::unique_ptr<ERBus> mERProcessor{ nullptr };
 		std::vector<typename ERBus::ERUpdateData> mTaps;
+
+		// Late Reverb stuff
+		std::shared_ptr<LateReverbModel> mLateReverbModel{ std::make_shared<LateReverbModel>() };
+		std::unique_ptr<ReverbBus> mLateReverb;
+		std::unique_ptr<Effect> mImpulseSource;
+		std::unique_ptr<Effect> mReverbEffectBus;
+		std::atomic<bool> mSendImpulse{ false };
+		std::unique_ptr<LateReverbGUI> mLateReverbGUI{ std::make_unique<LateReverbGUI>(mLateReverbModel) };
+		std::atomic<float> mERLevel{ 0.5f };
+		std::atomic<float> mLateReverbLevel{ 0.5f };
 
 		float mSampleRate = 48'000.0f;
 

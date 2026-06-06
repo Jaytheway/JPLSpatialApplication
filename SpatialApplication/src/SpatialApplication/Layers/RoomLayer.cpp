@@ -19,12 +19,55 @@
 
 #include "RoomLayer.h"
 
+#include "Config.h"
+
 #include "Utility/PerformanceMetering.h"
 #include "ImGui/ImGui.h"
 
+#include <JPLSpatial/AirAbsorption.h>
+#include <JPLSpatial/Auralization/ReverbUtilities.h>
 #include <JPLSpatial/ChannelMap.h>
+#include <JPLSpatial/Math/SIMD.h>
 
+#include <implot.h>
+
+#include <algorithm>
 #include <format>
+
+// TODO: move this somewhere reasonable and reuse here and in BDPTGUI.cpp
+template <>
+struct std::formatter<JPL::simd>
+{
+	std::formatter<float, char> FloatFormatter;
+
+	constexpr auto parse(std::format_parse_context& ctx)
+	{
+		return FloatFormatter.parse(ctx);
+	}
+
+	auto format(const JPL::simd& v, std::format_context& ctx) const
+	{
+		float data[4];
+		v.store(data);
+
+		auto out = FloatFormatter.format(data[0], ctx);
+
+		out = std::format_to(out, ", ");
+		ctx.advance_to(out);
+
+		out = FloatFormatter.format(data[1], ctx);
+
+		out = std::format_to(out, ", ");
+		ctx.advance_to(out);
+
+		out = FloatFormatter.format(data[2], ctx);
+
+		out = std::format_to(out, ", ");
+		ctx.advance_to(out);
+
+		return FloatFormatter.format(data[3], ctx);
+	}
+};
 
 namespace JPL
 {
@@ -50,14 +93,13 @@ namespace JPL
 		mRoom.RoomSize.AddChangeCallback<&RoomLayer::OnRoomSizeChanged>(this);
 		mRoom.SurfaceMaterial.AddChangeCallback<&RoomLayer::OnSurfaceMaterialChanged>(this);
 
-		JPL::AddChangeListener<&RoomLayer::UpdateTaps>(*this,
-													   mRoom.EnableSpecular,
-													   mRoom.EnableDirect,
-													   mRoom.NumPrimaryRays,
-													   mRoom.MaxOrder);
-
+		AddChangeListener<&RoomLayer::UpdateTaps>(*this,
+												  mRoom.EnableSpecular,
+												  mRoom.EnableDirect,
+												  mRoom.NumPrimaryRays,
+												  mRoom.MaxOrder);
 		mERPanner = std::make_unique <JPLPanner>();
-		mERPanner->Initialize(JPL::ChannelMap::FromNumChannels(2));
+		mERPanner->Initialize(ChannelMap::FromNumChannels(2));
 
 		JPL_ASSERT(mRoom.SurfaceMaterial.Get() != nullptr);
 		mERTracer.SetSurfaceMaterial(*mRoom.SurfaceMaterial.Get());
@@ -66,6 +108,7 @@ namespace JPL
 		mERTracer.OnRoomSizeChanged(mRoom.RoomSize.Get().Size);
 
 		UpdateTaps();
+		UpdateReverbTime();
 		Broadcast<&ChangeListenerType::OnRoomSizeChanged>(mRoom.RoomSize.Get().Size);
 		Broadcast<&ChangeListenerType::OnSourceChanged>(mRoom.GetSourceAbsPosition() - mRoom.GetListenerAbsPosition());
 	}
@@ -81,7 +124,9 @@ namespace JPL
 
 	void RoomLayer::OnUIRender()
 	{
-		const JPL::ImGuiEx::WindowConfig config
+		using namespace JPL::ImGuiEx;
+
+		const WindowConfig config
 		{
 			.Size = ImVec2(600.0f, 600.0f),
 			.MinSize = ImVec2(600.0f, 600.0f),
@@ -89,13 +134,14 @@ namespace JPL
 			.DockFlags = ImGuiDockNodeFlags_NoDockingOverMe | ImGuiDockNodeFlags_NoDockingOverOther
 		};
 
-
 		JPL::ImGuiEx::Window("RoomWindow", [&]
 		{
-			mRoomView.DrawProperties();
+			Child("Properties", ChildConfig{ .Size = ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 6.0f) }, [&]
+			{
+				mRoomView.DrawProperties();
+			});
 
-			ImGui::Spacing();
-			ImGui::Spacing();
+			Layout<Spacer>();
 			
 			const ImVec2 roomCanvasPosition = ImGui::GetCursorScreenPos();
 			
@@ -134,6 +180,7 @@ namespace JPL
 	{
 		mERTracer.OnListenerChanged(mRoom.GetListenerAbsPosition());
 		UpdateTaps();
+		UpdateReverbTime();
 
 		const auto sourcePosition = (mRoom.GetSourceAbsPosition() - mRoom.GetListenerAbsPosition());
 		Broadcast<&ChangeListenerType::OnSourceChanged>(sourcePosition);
@@ -143,6 +190,7 @@ namespace JPL
 	{
 		mERTracer.OnSourceChanged(mRoom.GetSourceAbsPosition());
 		UpdateTaps();
+		UpdateReverbTime();
 
 		const auto sourcePosition = (mRoom.GetSourceAbsPosition() - mRoom.GetListenerAbsPosition());
 		Broadcast<&ChangeListenerType::OnSourceChanged>(sourcePosition);
@@ -154,6 +202,7 @@ namespace JPL
 		mERTracer.OnSourceChanged(mRoom.GetSourceAbsPosition());
 		mERTracer.OnRoomSizeChanged(room.Size);
 		UpdateTaps();
+		UpdateReverbTime();
 
 		Broadcast<&ChangeListenerType::OnRoomSizeChanged>(room.Size);
 	}
@@ -162,6 +211,7 @@ namespace JPL
 	{
 		mERTracer.SetSurfaceMaterial(*newMaterial);
 		UpdateTaps();
+		UpdateReverbTime();
 	}
 
 	void RoomLayer::UpdateTaps()
@@ -200,7 +250,13 @@ namespace JPL
 				for (float& g : newTap.Gains) // apply distance attenuation
 					g *= invDistance;
 
-				newTap.FilterGains = dBToGain(-path.Energy);
+				// Energy loss due to air absorption depends on image source position
+				// relative to listener position, therefore cannot be part of the path
+				// like energy loss due to material absorption.
+				const simd energyLoss = path.Energy + AirAbsorption::ComputeForDistance(pathLength, cDefaultAirAbsCache);
+				// TODO: get environment properties from the user
+
+				newTap.FilterGains = dBToGain(-energyLoss);
 				newTap.Delay = pathTime;
 				newTap.Id = pathId.Id;
 			}
@@ -208,5 +264,23 @@ namespace JPL
 
 		Broadcast<&ChangeListenerType::OnTapsUpdated>(mTaps);
 	}
+
+	void RoomLayer::UpdateReverbTime()
+	{
+
+		// Estimate reverberation time using Eyring equation
+		const AcousticMaterial* surfaceMaterial = mRoom.SurfaceMaterial.Get();
+		if (JPL_ENSURE(surfaceMaterial))
+		{
+			const MinimalVec3 roomSize = mRoom.RoomSize.Get().Size;
+
+			mRT60 = EstimateRT60_Eyring(roomSize.X, roomSize.Z, roomSize.Y,
+										surfaceMaterial->Coeffs,
+										cDefaultAirAbsCache.HighFreqWeightedAbsorption_dB);
+
+			Broadcast<&ChangeListenerType::OnReverbTimeUpdated>(mRT60);
+		}
+	}
+
 } // namespace JPL
 
