@@ -159,4 +159,36 @@ namespace JPL::ImGuiEx
         Window(name, draw, p_open, config);
     }
 
+    template<class DrawFunction>
+    void TabBar(const char* label, const DrawFunction& draw, ImGuiTabBarFlags flags = 0)
+    {
+        if (ImGui::BeginTabBar(label, flags | ImGuiTabBarFlags_DrawSelectedOverline))
+        {
+            draw();
+            ImGui::EndTabBar();
+        }
+    }
+
+    template<class DrawFunction>
+    void TabBar(const char* label, ImGuiTabBarFlags flags, const DrawFunction& draw)
+    {
+        TabBar(label, draw, flags);
+    }
+
+    template<class DrawFunction>
+    void TabItem(const char* label, const DrawFunction& draw, bool* p_open = nullptr, ImGuiTabItemFlags flags = 0)
+    {
+        if (ImGui::BeginTabItem(label, p_open, flags))
+        {
+            draw();
+            ImGui::EndTabItem();
+        }
+    }
+
+    template<class DrawFunction>
+    void TabItem(const char* label, bool* p_open, ImGuiTabItemFlags flags, const DrawFunction& draw)
+    {
+        TabItem(label, draw, flags);
+    }
+
 } // namespace JPL::ImGuiEx
