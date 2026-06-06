@@ -110,11 +110,17 @@ namespace JPL
 	};
 
 	// TODO: if I want it to be scoped/local, it has to be added to some sort of registry
-	struct SetTapsMetering
+	struct UpdateTapsMetering
 	{
-		inline static const char* Label = "Set Taps";
+		inline static const char* Label = "Update ER Taps";
+	};
+
+	struct RayTracinMetering
+	{
+		static inline const char* Label = "Ray Tracing";
 	};
 
 	using PerfMeterAudioCallback = PerformanceMetering<AudioCallbackMetering>;
-	using PerfMeterSetTaps = PerformanceMetering<SetTapsMetering>;
+	using PerfMeterUpdateTaps = PerformanceMetering<UpdateTapsMetering>;
+	using PerfMeterRayTracing = PerformanceMetering<RayTracinMetering>;
 } // namespace JPL

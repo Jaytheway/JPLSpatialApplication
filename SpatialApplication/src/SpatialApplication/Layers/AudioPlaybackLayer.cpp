@@ -250,7 +250,7 @@ namespace JPL
 		// the chain update will be called later and will SetTaps
 		if (mERProcessor)
 		{
-			const auto timer = PerfMeterSetTaps::MakeScopedTimer();
+			const auto timer = PerfMeterUpdateTaps::MakeScopedTimer();
 			mERProcessor->SetTaps(mTaps);
 		}
 	}
@@ -339,7 +339,7 @@ namespace JPL
 			mDelayTime,
 			mChannelMixMap
 		);
-
+	
 		// Create Direct Sound Effect bus
 		// TODO: this does not allow panning to a higher channel count, we need to decouple direct effect from target bus panning
 		mDirectEffectBus = std::make_unique<Effect>(numSourceChannels, numOutChannels, [this](JPL::ProcessCallbackData& callback)
@@ -375,7 +375,7 @@ namespace JPL
 		mERProcessor = std::make_unique<JPL::ERBus>();
 		mERProcessor->Prepare(mSampleRate, numOutChannels);
 		{
-			const auto timer = PerfMeterSetTaps::MakeScopedTimer();
+			const auto timer = PerfMeterUpdateTaps::MakeScopedTimer();
 			mERProcessor->SetTaps(mTaps);
 		}
 
