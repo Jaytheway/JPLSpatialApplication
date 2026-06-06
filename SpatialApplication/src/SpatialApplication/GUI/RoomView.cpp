@@ -220,11 +220,13 @@ namespace JPL
         }
     }
 
-    void RoomView::DrawEnvironment()
+    ImDrawList* RoomView::DrawEnvironment()
     {
         using namespace ImGuiEx;
 
         MinimalVec3 roomSize = mModel.RoomSize.Get().Size;
+
+        ImDrawList* canvasDrawList = nullptr;
 
         Child("Canvas Frame", [&]
         {
@@ -251,9 +253,13 @@ namespace JPL
                 {
                     DrawSource();
                     DrawListener();
+
+                    canvasDrawList = ImGui::GetWindowDrawList();
                 });
             }
         });
+
+        return canvasDrawList;
     }
 
     void RoomView::SetSourceSize(float newSize)

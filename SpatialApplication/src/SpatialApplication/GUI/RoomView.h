@@ -47,7 +47,9 @@ namespace JPL
 		explicit RoomView(RoomModel& model);
 		void OnStart();
 		void DrawProperties();
-		void DrawEnvironment();
+
+		// @returns draw list of the canvas, in case something needs to be drawn on top
+		ImDrawList* DrawEnvironment();
 
 		// Set source size in world units (not pixels)
 		void SetSourceSize(float newSize);

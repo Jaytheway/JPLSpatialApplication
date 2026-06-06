@@ -98,15 +98,16 @@ namespace JPL
 			ImGui::Spacing();
 			
 			const ImVec2 roomCanvasPosition = ImGui::GetCursorScreenPos();
-			mRoomView.DrawEnvironment();
 			
-			// Draw info text
-			char numERLabelText[64]{};
-			std::format_to_n(numERLabelText, 64, "Specular Reflections Count: {}", mTaps.size());
-			
-			auto* fgDrawList = ImGui::GetForegroundDrawList();
-			const ImU32 textColour = IM_COL32(255, 255, 255, 60);
-			fgDrawList->AddText(roomCanvasPosition + ImGui::GetStyle().ItemSpacing, textColour, numERLabelText);
+			if (ImDrawList* canvasDrawList = mRoomView.DrawEnvironment())
+			{
+				// Draw info text
+				char numERLabelText[64]{};
+				std::format_to_n(numERLabelText, 64, "Specular Reflections Count: {}", mTaps.size());
+
+				const ImU32 textColour = IM_COL32(255, 255, 255, 60);
+				canvasDrawList->AddText(roomCanvasPosition + ImGui::GetStyle().ItemSpacing, textColour, numERLabelText);
+			}
 
 		}, nullptr, config);
 
