@@ -46,6 +46,7 @@ namespace JPL
     RoomView::RoomView(RoomModel& model)
         : mModel(model)
     {
+        AcousticMaterial::SetMaterial("< CUSTOM >", simd(0.5f));
     }
 
     void RoomView::OnStart()
@@ -61,156 +62,185 @@ namespace JPL
 
         const ImVec2 availableSize = ImGui::GetContentRegionAvail();
 
-        const ChildConfig propsPanelConfig
-        {
-            .ChildFlags = ImGuiChildFlags_AutoResizeY
-        };
 
-        // Settings
-        Child("PropertiesFrame", propsPanelConfig, [&]
+        const auto autoResizeY = ImGuiChildFlags_AutoResizeY;
+        const auto autoResizeXY = ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX;
+
+        Child("PropertiesFrame", ChildConfig{.ChildFlags = autoResizeXY }, [&]
         {
-            LayoutHorizontal("Properties", [&]
+            LayoutVertical("Room Props", ImVec2(0, 0), 0.0f, [&]
             {
-                LayoutVertical("Room Props", ImVec2(0, 0), 0.0f, [&]
+                ScopedItemWidth width(200.0f);
+
+                //? Not ideal, the spacing depends on the font, but works for now6
+                ImGui::TextDisabled("       X                   Y                   Z");
+                ImGui::Spring();
+
                 {
-                    ScopedItemWidth width(200.0f);
+                    // ImGui multi-input widgets push id of the field index,
+                    // so we need to detect component id for our outline logic
+                    ScopedItemOutline outline("Room Size", { 0, 1, 2 });
 
-                    //? Not ideal, the spacing depends on the font, but works for now6
-                    ImGui::TextDisabled("       X                 Y                Z");
-                    ImGui::Spring();
-
+                    auto roomSizeEdit = roomSize;
+                    ImGui::InputFloat3("Room Size", &roomSizeEdit.X, "%.1f");
+                    if (ImGui::IsItemDeactivatedAfterEdit())
                     {
-                        // ImGui multi-input widgets push id of the field index,
-                        // so we need to detect component id for our outline logic
-                        ScopedItemOutline outline("Room Size", { 0, 1, 2 });
-
-                        auto roomSizeEdit = roomSize;
-                        ImGui::InputFloat3("Room Size", &roomSizeEdit.X, "%.1f");
-                        if (ImGui::IsItemDeactivatedAfterEdit())
-                        {
-                            roomSize.X = std::max(2.0f, roomSizeEdit.X);
-                            roomSize.Y = std::max(2.0f, roomSizeEdit.Y);
-                            roomSize.Z = std::max(2.0f, roomSizeEdit.Z);
-                            bRoomSizeChanged = true;
-                        }
+                        roomSize.X = std::max(2.0f, roomSizeEdit.X);
+                        roomSize.Y = std::max(2.0f, roomSizeEdit.Y);
+                        roomSize.Z = std::max(2.0f, roomSizeEdit.Z);
+                        bRoomSizeChanged = true;
                     }
-
-                    ImGui::Spacing();
-                    ImGui::Spacing();
-
-                    auto clampToRoomBounds = [&roomSize](const MinimalVec3& position)
-                    {
-                        return MinimalVec3{
-                            std::clamp(position.X, 1.0f, roomSize.X - 1),
-                            std::clamp(position.Y, 0.1f, roomSize.Y - 1),
-                            std::clamp(position.Z, 1.0f, roomSize.Z - 1)
-                        };
-                    };
-
-                    {
-                        ScopedItemOutline outline("Source Pos.", { 0, 1, 2 });
-
-                        auto sourcePos = mModel.GetSourceAbsPosition();
-                        if (ImGui::DragFloat3("Source Pos.", sourcePos.mVF.data(), 0.33f, 0.0f, 0.0f, "%.1f"))
-                        {
-                            sourcePos = clampToRoomBounds(sourcePos);
-
-                            const MinimalVec3 newSourcePos = sourcePos / roomSize;
-                            mModel.Source.Set({ newSourcePos });
-                        }
-                    }
-
-                    {
-                        ScopedItemOutline outline("Listener Pos.", { 0, 1, 2 });
-
-                        auto listenerPos = mModel.GetListenerAbsPosition();
-                        if (ImGui::DragFloat3("Listener Pos.", listenerPos.mVF.data(), 0.33f, 0.0f, 0.0f, "%.1f"))
-                        {
-                            listenerPos = clampToRoomBounds(listenerPos);
-
-                            const MinimalVec3 newListenerPos = listenerPos / roomSize;
-                            mModel.Listener.Set({ newListenerPos });
-                        }
-                    }
-                });
+                }
 
                 ImGui::Spacing();
+                ImGui::Spacing();
 
-                ScopedItemWidth width(140.0f);
-                LayoutHorizontal("Options", [&]
+                auto clampToRoomBounds = [&roomSize](const MinimalVec3& position)
                 {
-                    LayoutVertical("Specular Options", ImVec2(0, 0), 0.0f, [&]
+                    return MinimalVec3{
+                        std::clamp(position.X, 1.0f, roomSize.X - 1),
+                        std::clamp(position.Y, 0.1f, roomSize.Y - 1),
+                        std::clamp(position.Z, 1.0f, roomSize.Z - 1)
+                    };
+                };
+
+                {
+                    ScopedItemOutline outline("Source Pos.", { 0, 1, 2 });
+
+                    auto sourcePos = mModel.GetSourceAbsPosition();
+                    if (ImGui::DragFloat3("Source Pos.", sourcePos.mVF.data(), 0.33f, 0.0f, 0.0f, "%.1f"))
                     {
-                        PropertyCheckbox("Specular Reflections", mModel.EnableSpecular);
+                        sourcePos = clampToRoomBounds(sourcePos);
 
-                        ImGui::Spacing();
+                        const MinimalVec3 newSourcePos = sourcePos / roomSize;
+                        mModel.Source.Set({ newSourcePos });
+                    }
+                }
 
-                        ScopedDisable disable(not mModel.EnableSpecular.Get());
+                {
+                    ScopedItemOutline outline("Listener Pos.", { 0, 1, 2 });
 
-                        {
-                            ScopedItemOutline outline("Num Prim. Rays");
-
-                            int numPrimaryRays = static_cast<int>(mModel.NumPrimaryRays.Get());
-
-                            if (ImGui::InputInt("Num Prim. Rays", &numPrimaryRays))
-                            {
-                                numPrimaryRays = std::max(0, numPrimaryRays);
-                                mModel.NumPrimaryRays.Set(static_cast<uint32_t>(numPrimaryRays));
-                            }
-                        }
-
-                        {
-                            ScopedItemOutline outline("Max Spec. Order");
-
-                            int maxSpecularOrder = static_cast<int>(mModel.MaxOrder.Get());
-                            if (ImGui::InputInt("Max Spec. Order", &maxSpecularOrder))
-                            {
-                                maxSpecularOrder = std::clamp(maxSpecularOrder, 0, static_cast<int>(SpecularRayTracing::cMaxOrder));
-                                mModel.MaxOrder.Set(static_cast<uint32_t>(maxSpecularOrder));
-                            }
-                        }
-
-                        {
-                            ScopedItemOutline outline("Surface Material");
-
-                            static uint32_t selectedMaterialId = mModel.SurfaceMaterial.Get()->ID;
-                            std::string_view currentMaterial = mModel.SurfaceMaterial.Get()->Name;
-
-                            if (ImGui::BeginCombo("Surface Material", currentMaterial.data()))
-                            {
-                                const auto& acousticMaterials = AcousticMaterial::GetListOfMaterials();
-
-                                for (const auto& [id, material] : acousticMaterials)
-                                {
-                                    bool bSelected = id == selectedMaterialId;
-                                    if (ImGui::Selectable(material.Name.data(), &bSelected))
-                                    {
-                                        selectedMaterialId = id;
-                                        mModel.SurfaceMaterial.Set(&material);
-                                    }
-                                }
-                                ImGui::EndCombo();
-                            }
-                            ImGuiEx::SetTooltip(currentMaterial);
-                        }
-
-                    });
-
-                    ImGui::Spacing();
-
-                    LayoutVertical("Direct Options", [&]
+                    auto listenerPos = mModel.GetListenerAbsPosition();
+                    if (ImGui::DragFloat3("Listener Pos.", listenerPos.mVF.data(), 0.33f, 0.0f, 0.0f, "%.1f"))
                     {
-                        PropertyCheckbox("Direct Sound", mModel.EnableDirect);
+                        listenerPos = clampToRoomBounds(listenerPos);
 
-                        ImGui::Spacing();
+                        const MinimalVec3 newListenerPos = listenerPos / roomSize;
+                        mModel.Listener.Set({ newListenerPos });
+                    }
+                }
+            });
+        });
 
-                        ScopedDisable disable(not mModel.EnableDirect.Get());
+        ImGui::SameLine();
 
-                        PropertyCheckbox("Air Absorption", mModel.DirectSound->EnableAirAbsorption);
-                        PropertyCheckbox("Distance Attenuation", mModel.DirectSound->EnableDistanceAttenuation);
-                        PropertyCheckbox("PropagaionDelay", mModel.DirectSound->EnablePropagationDelay);
-                    });
-                });
+        auto drawPropsMaterial = [&]
+        {
+            const AcousticMaterial* selectedMaterial = mModel.SurfaceMaterial.Get();
+
+            static uint32 selectedMaterialId = selectedMaterial->ID;
+            const AcousticMaterial* customMaterial = AcousticMaterial::Get("< CUSTOM >");
+            JPL_ASSERT(customMaterial);
+
+            ScopedItemWidth width(210.0f);
+            {
+                ScopedItemOutline outline("Surface Material");
+
+                std::string_view currentMaterial = selectedMaterial->Name;
+
+                if (ImGui::BeginCombo("Surface Material", currentMaterial.data()))
+                {
+                    const auto& acousticMaterials = AcousticMaterial::GetListOfMaterials();
+
+                    for (const auto& [id, material] : acousticMaterials)
+                    {
+                        bool bSelected = id == selectedMaterialId;
+                        if (ImGui::Selectable(material.Name.data(), &bSelected))
+                        {
+                            selectedMaterialId = id;
+                            mModel.SurfaceMaterial.Set(&material);
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                ImGuiEx::SetTooltip(currentMaterial);
+            }
+
+            // Selected material properties
+            if (selectedMaterial)
+            {
+                static constexpr float minAbsorption = 0.01f;
+                static constexpr float maxAbsorption = 0.99f;
+
+                float absorptionBands[4]{}; selectedMaterial->Coeffs.store(absorptionBands);
+                float bandCenters[4]{}; cBandCenters.store(bandCenters);
+
+                const bool bSelectedCustomMaterial = selectedMaterial == customMaterial;
+
+                // We don't want to modify default materials
+                ScopedDisable disable(not bSelectedCustomMaterial);
+
+				const uint32 modifiedBand = ImGuiEx::DrawGEQ("Absorption",
+															 absorptionBands, bandCenters,
+															 minAbsorption, maxAbsorption,
+															 ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 2.0f));
+
+                if (bSelectedCustomMaterial)
+                {
+                    static bool bLinked = false;
+                    {
+                        ScopedItemOutline outline("Link");
+                        ImGui::SameLine();
+                        ImGui::Checkbox("Link", &bLinked);
+                    }
+                    
+                    if (modifiedBand)
+                    {
+                        const simd modifiedAbsorption = bLinked
+                                                      ? simd(absorptionBands[modifiedBand - 1])
+                                                      : simd(absorptionBands);
+
+                        AcousticMaterial::SetMaterial("< CUSTOM >", modifiedAbsorption);
+                        mModel.SurfaceMaterial.BroadcastUpdate();
+
+                    }
+                }
+            }
+        };
+            
+        auto drawPropsER = [&]
+        {
+            PropertyCheckbox("Enable Specular Reflections", mModel.EnableSpecular);
+
+            ImGui::Spacing();
+
+            ScopedDisable disable(not mModel.EnableSpecular.Get());
+            ScopedItemWidth width(210.0f);
+
+            Input("Num Prim. Rays", mModel.NumPrimaryRays, InputConfig<uint32>{.Step = 1, .StepFast = 100, .Fmt = "%d" });
+            Input("Max Spec. Order", mModel.MaxOrder, InputConfig<uint32>{.Step = 1, .StepFast = 100, .Fmt = "%d", .Max = uint32(SpecularRayTracing::cMaxOrder) });
+        };
+
+        auto drawPropsDirectSound = [&]
+        {
+            PropertyCheckbox("Enable Direct Sound", mModel.EnableDirect);
+
+            ImGui::Spacing();
+
+            ScopedDisable disable(not mModel.EnableDirect.Get());
+
+            PropertyCheckbox("Air Absorption", mModel.DirectSound->EnableAirAbsorption); ImGui::SameLine();
+            PropertyCheckbox("Distance Attenuation", mModel.DirectSound->EnableDistanceAttenuation);
+            PropertyCheckbox("Propagaion Delay", mModel.DirectSound->EnablePropagationDelay);
+        };
+
+        Child("Props", ChildConfig{.ChildFlags = autoResizeY }, [&]
+        {
+            ImGuiEx::TabBar("Properties", [&]
+            {
+                ImGuiEx::TabItem("Early Reflections", drawPropsER);
+                ImGuiEx::TabItem("Direct Sound", drawPropsDirectSound);
+                ImGuiEx::TabItem("Surface Material", drawPropsMaterial);
             });
         });
 
