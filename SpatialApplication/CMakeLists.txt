@@ -87,9 +87,11 @@ jpl_setup_dependencie()
 set_target_properties(JPLSpatialApplication PROPERTIES FOLDER "Core")
 
 # Global defines
-#target_compile_definitions(JPLSpatialApplication
-#  PUBLIC
-#)
+target_compile_definitions(JPLSpatialApplication
+  PUBLIC
+    IMGUI_USER_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/src/SpatialApplication/ImGui/JPLImGuiConfig.h"
+)
+
 
 #============================================================
 # Per-config defines (DEBUG/NDEBUG + JPL_TEST if tests are enabled)
