@@ -234,20 +234,21 @@ namespace JPL::ImGuiEx
 			ImGui::IsItemHovered() ? style.ColourHovered :
 			style.ColourNormal;
 
+		const ImVec2 bbMin = ImGui::GetItemRectMin();
+		const ImVec2 bbMax = ImGui::GetItemRectMax();
+
 		// Draw background and border
 		auto* drawList = ImGui::GetWindowDrawList();
-		drawList->AddRectFilled(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), backgroundColour, ImGui::GetStyle().FrameRounding);
+		drawList->AddRectFilled(bbMin, bbMax, backgroundColour, ImGui::GetStyle().FrameRounding);
 		if (style.bDrawBorder)
 		{
-			drawList->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), style.BorderColour, ImGui::GetStyle().FrameRounding);
+			drawList->AddRect(bbMin, bbMax, style.BorderColour, ImGui::GetStyle().FrameRounding);
 		}
 		
 		// Draw icon text label
-		ImGui::SetCursorScreenPos(position);
-		ImGui::AlignTextToFramePadding();
-		ShiftCursorX(ImGui::GetStyle().FramePadding.x);
-
-		ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(iconColour), label);
+		const ImVec2 textSize = ImGui::CalcTextSize(label);
+		const ImVec2 textPos = ImRect(bbMin, bbMax).GetCenter() - textSize * 0.5f;
+		drawList->AddText(textPos, iconColour, label);
 
 		return bPressed;
 	}
@@ -269,4 +270,129 @@ namespace JPL::ImGuiEx
 		return IconButtonStyle();
 	}*/
 
+	uint32 DrawGEQ(const char* itemId, std::span<float> values, std::span<const float> frequencies, float minValue, float maxValue, const ImVec2& size)
+	{
+		if (not JPL_ENSURE(frequencies.size() == values.size() - 1 or frequencies.size() == values.size()))
+		{
+			return 0;
+		}
+
+		using namespace ImGuiEx;
+
+		ScopedID geqID(itemId);
+
+		uint32 bModifiedBand = 0;
+
+		static auto getFrequencyStr = [](char* outStr, uint32 bufferSize, float freq)
+		{
+			std::format_to_n(outStr, bufferSize, "{:.0f}", freq);
+		};
+
+		static auto getFreqStrWidth = [](float freq)
+		{
+			char str[16]{};
+			getFrequencyStr(str, 15, freq);
+			return ImGui::CalcTextSize(str).x;
+		};
+
+		const float minSliderWidth = ImGui::CalcTextSize("10.0").x + GImGui->Style.FramePadding.x * 2.0f;
+		const float requestedSliderWidth = size.x / values.size();
+
+		const float sliderWidth = [&]()
+		{
+			float maxSize = std::max(minSliderWidth, requestedSliderWidth);
+			for (float freq : frequencies)
+			{
+				maxSize = std::max(maxSize, getFreqStrWidth(freq));
+			}
+			return maxSize;
+		}();
+
+		auto freqSlider = [=](float* v)
+		{
+			ScopedID id(v);
+			bool bModified = false;
+			LayoutVertical("Slider", [&]
+			{
+				ScopedItemOutline outline("##dummy_id");
+
+				const ImVec2 sliderSize(sliderWidth, size.y);
+				bModified = ImGui::VSliderFloat(
+					"##dummy_id", sliderSize, v,
+					minValue, maxValue,
+					"%.2f", ImGuiSliderFlags_AlwaysClamp
+				);
+			});
+
+			return bModified;
+		};
+
+		LayoutVertical("GEQ Layout", [&]
+		{
+			LayoutHorizontal("Sliders", [&]
+			{
+				ScopedStyle spacing(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, GImGui->Style.ItemSpacing.y));
+
+				for (uint32 b = 0; b < values.size(); ++b)
+				{
+					if (freqSlider(&values[b]))
+						bModifiedBand = b + 1;
+				}
+			});
+
+			LayoutHorizontal("Frequency Labels", [&]
+			{
+				ImVec2 cursor = ImGui::GetCursorScreenPos();
+
+				if (frequencies.size() == values.size())
+				{
+					// Draw band center frequencies
+					const float halfSliderWidth = sliderWidth * 0.5f;
+					ImGui::SetCursorScreenPos((cursor += ImVec2(halfSliderWidth, 0.0f)));
+					
+					for (float freq : frequencies)
+					{
+						ShiftCursorX(-getFreqStrWidth(freq) * 0.5f);
+						ImGui::Text("%.0f", freq);
+						ImGui::SetCursorScreenPos((cursor += ImVec2(sliderWidth, 0.0f)));
+					}
+				}
+				else
+				{
+					// Draw split frequencies
+					for (float freq : frequencies)
+					{
+						ImGui::SetCursorScreenPos((cursor += ImVec2(sliderWidth, 0.0f)));
+						ShiftCursorX(-getFreqStrWidth(freq) * 0.5f);
+						ImGui::Text("%.0f", freq);
+					}
+				}
+			});
+		});
+
+		return bModifiedBand;
+	}
+
+	uint32 DrawGEQ(const char* itemId, simd& values, const simd& frequencies, float minValue, float maxValue, const ImVec2& size)
+	{
+		float v[4]{}; values.store(v);
+		float freq[4]{}; frequencies.store(freq);
+
+		const uint32 modifiedBand = DrawGEQ(itemId, v, freq, minValue, maxValue, size);
+		if (modifiedBand)
+			values.load(v);
+
+		return modifiedBand;
+	}
+
+	uint32 DrawGEQ(const char* itemId, Property<simd>& values, const simd& frequencies, float minValue, float maxValue, const ImVec2& size)
+	{
+		simd v = values.Get();
+
+		const uint32 modifiedBand = DrawGEQ(itemId, v, frequencies, minValue, maxValue, size);
+		if (modifiedBand)
+			values.Set(v);
+
+		return modifiedBand;
+	}
 } // namespace JPL::ImGuiEx

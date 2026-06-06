@@ -25,11 +25,19 @@
 
 #include <Walnut/Image.h>
 
+#include <JPLSpatial/Math/SIMD.h>
+
+#include <concepts>
+#include <span>
+#include <format>
+#include <string>
+#include <optional>
+
 namespace JPL::ImGuiEx
 {
     bool PropertyCheckbox(const char* label, Property<bool>& property);
 
-	//=========================================================================================
+	//==========================================================================
 	/// Button Image
 
 	void DrawButtonImage(const Walnut::Image& imageNormal, const Walnut::Image& imageHovered, const Walnut::Image& imagePressed,
@@ -74,9 +82,14 @@ namespace JPL::ImGuiEx
 		DrawButtonImage(image, image, image, tintNormal, tintHovered, tintPressed, ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), uv0, uv1);
 	};
 
+	//==========================================================================
 	bool PathButton(const char* label, ImVec2 size = ImVec2(0.0f, 0.0f));
 
+	//==========================================================================
 	void DrawMainWindowButtons(ImVec2 titlebarMin, ImVec2 titlebarMax);
+
+	//==========================================================================
+	/// Icon Button
 
 	struct IconButtonStyle
 	{
@@ -95,5 +108,343 @@ namespace JPL::ImGuiEx
 	};
 
 	bool IconButton(const char* label, const IconButtonStyle& style = {});
+	inline bool IconButton(const char8_t* label, const IconButtonStyle& style = {}) { return IconButton((const char*)(label), style); }
 
+	//==========================================================================
+	/// Graphic EQ widget with vertical sliders for frequency band gains
+	/// @param frequencies if size = values.size -> treated as frequency band
+	/// centers; if the size = values.size - 1 -> treated as split frequencies;
+	/// other sizes are invalid.
+	/// 
+	/// @returns band that was modified (index + 1), 0 if not modified
+	uint32 DrawGEQ(const char* itemId, std::span<float> values, std::span<const float> frequencies, float minValue, float maxValue, const ImVec2& size = ImVec2{ 0.0f, 160.0f });
+	
+	uint32 DrawGEQ(const char* itemId, simd& values, const simd& frequencies, float minValue, float maxValue, const ImVec2& size = ImVec2{ 0.0f, 160.0f });
+	
+	uint32 DrawGEQ(const char* itemId, Property<simd>& values, const simd& frequencies, float minValue, float maxValue, const ImVec2& size = ImVec2{ 0.0f, 160.0f });
+
+	//==========================================================================
+	/// Text
+
+	template <class... Types>
+	void TextFormatted(std::string& buffer, const std::format_string<Types...> fmt, Types&&...args)
+	{
+		buffer.clear();
+		std::format_to(std::back_inserter(buffer), fmt, std::forward<Types>(args)...);
+		ImGui::TextUnformatted(buffer.c_str());
+	}
+
+	// Simple utility to draw formatted text.
+	// It reuses its own string buffer to avoid allocatoins,
+	// and is ment to be used as a function local static variable.
+	struct TextPrinter
+	{
+		template <class... Types>
+		void Print(const std::format_string<Types...> fmt, Types&&...args)
+		{
+			TextFormatted(Buffer, fmt, std::forward<Types>(args)...);
+		}
+
+		std::string Buffer{ 64, 0 };
+	};
+
+
+	//==========================================================================
+	/// Sliders
+	
+	template<class T>
+	concept CSliderVType = std::floating_point<T> or std::integral<T>;
+
+	template<CSliderVType T>
+	constexpr const char* GetDefaultFmt();
+	
+	struct SliderConfig
+	{
+		const char* Fmt = "%.3f";
+		ImGuiSliderFlags Flags = 0;
+
+		// We won't put min/max in config for now,
+		// because it would make it easy to forget
+		// to specify the values, which are required Slider widget
+	};
+
+	template<CSliderVType T>
+	bool Slider(const char* label, T& value, T minV, T maxV, const SliderConfig& config = { .Fmt = GetDefaultFmt<T>() });
+
+	template<CSliderVType T>
+	bool Slider(const char* label, Property<T>& property, T minV, T maxV, const SliderConfig& config = { .Fmt = GetDefaultFmt<T>() });
+
+	//==========================================================================
+	/// Input
+	
+	template<class T>
+	struct InputConfig
+	{
+		T Step{ 0 };
+		T StepFast{ 0 };
+		const char* Fmt = "%.3f";
+		ImGuiInputTextFlags Flags = 0;
+
+		std::optional<T> Min;
+		std::optional<T> Max;
+	};
+
+	template<std::floating_point T>
+	bool Input(const char* label, T& v, const InputConfig<T>& config = {});
+
+	template<std::integral T>
+	inline bool Input(const char* label, T& v, const InputConfig<T>& config = { .Step = 1, .StepFast = 100, .Fmt = "%d" });
+
+	template<std::floating_point T>
+	bool Input(const char* label, Property<T>& property, const InputConfig<T>& config = {});
+
+	template<std::integral T>
+	inline bool Input(const char* label, Property<T>& property, const InputConfig<T>& config = { .Step = 1, .StepFast = 100, .Fmt = "%d" });
+
+	
+	//==========================================================================
+	/// Spacers & Separators
+
+	struct Spacer {};
+	struct Separator {};
+
+	template<class T>
+	concept CLayoutItem = std::same_as<T, Spacer> or std::same_as<T, Separator>;
+
+	template<CLayoutItem...Ts>
+	void Layout()
+	{
+		auto drawElement = []<typename T>()
+		{
+			if constexpr (std::same_as<T, Spacer>)
+			{
+				ImGui::Spacing();
+			}
+			else
+			{
+				ImGui::Separator();
+			}
+		};
+
+		(drawElement.operator()<Ts>(),...);
+	}
+
+} // namespace JPL::ImGuiEx
+
+//==============================================================================
+//
+//   Code beyond this point is implementation detail...
+//
+//==============================================================================
+
+namespace JPL::ImGuiEx
+{
+	template<class T>
+	constexpr ImGuiDataType GetImGuiDataTypeFrom()
+	{
+		if constexpr (std::same_as<T, float>)
+		{
+			return ImGuiDataType_Float;
+		}
+		else if constexpr (std::same_as<T, int>)
+		{
+			return ImGuiDataType_S32;
+		}
+		else if constexpr (std::same_as<T, int8>)
+		{
+			return ImGuiDataType_S8;
+		}
+		else if constexpr (std::same_as<T, uint8>)
+		{
+			return ImGuiDataType_U8;
+		}
+		else if constexpr (std::same_as<T, int16>)
+		{
+			return ImGuiDataType_S16;
+		}
+		else if constexpr (std::same_as<T, uint16>)
+		{
+			return ImGuiDataType_U16;
+		}
+		else if constexpr (std::same_as<T, uint32>)
+		{
+			return ImGuiDataType_U32;
+		}
+		else if constexpr (std::same_as<T, int64>)
+		{
+			return ImGuiDataType_S64;
+		}
+		else if constexpr (std::same_as<T, uint64>)
+		{
+			return ImGuiDataType_U64;
+		}
+		else if constexpr (std::same_as<T, double>)
+		{
+			return ImGuiDataType_Double;
+		}
+		else
+		{
+			static_assert(false && "Unsupported data type.");
+			return 0;
+		}
+	}
+
+	template<CSliderVType T>
+	constexpr const char* GetDefaultFmt()
+	{
+		if constexpr (std::same_as<T, float>)
+		{
+			return "%.3f";
+		}
+		else if constexpr (std::same_as<T, int>)
+		{
+			return "%d";
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
+
+	template<CSliderVType T>
+	bool Slider(const char* label, T& value, T minV, T maxV, const SliderConfig& config)
+	{
+		ScopedItemOutline outline(label);
+
+		if constexpr (std::same_as<T, float>)
+		{
+			return ImGui::SliderFloat(label, &value, minV, maxV, config.Fmt, config.Flags);
+		}
+		else if constexpr (std::same_as<T, int>)
+		{
+			return ImGui::SliderInt(label, &value, minV, maxV, config.Fmt, config.Flags);
+		}
+		else
+		{
+			return ImGui::SliderScalar(label, GetImGuiDataTypeFrom<T>(), &value, &minV, &maxV, config.Fmt, config.Flags);
+		}
+	}
+
+	template<CSliderVType T>
+	bool Slider(const char* label, Property<T>& property, T minV, T maxV, const SliderConfig& config)
+	{
+		T value = property.Get();
+
+		if (Slider(label, value, minV, maxV, config))
+		{
+			property.Set(value);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	template<std::floating_point T>
+	bool Input(const char* label, T& v, const InputConfig<T>& config)
+	{
+		ScopedItemOutline outline(label);
+
+		bool bModified = false;
+
+		if constexpr (std::same_as<T, float>)
+		{
+			bModified = ImGui::InputFloat(label, &v, config.Step, config.StepFast, config.Fmt, config.Flags);
+		}
+		else if constexpr (std::same_as<T, double>)
+		{
+			bModified = ImGui::InputDouble(label, &v, config.Step, config.StepFast, config.Fmt, config.Flags);
+		}
+		else
+		{
+			static_assert(false, "Unsupported floating point type.");
+		}
+
+		if (bModified)
+		{
+			if (config.Min)
+				v = std::max(v, *config.Min);
+
+			if (config.Max)
+				v = std::min(v, *config.Max);
+		}
+
+		return bModified;
+	}
+
+	template<std::integral T>
+	bool Input(const char* label, T& v, const InputConfig<T>& config)
+	{
+		ScopedItemOutline outline(label);
+
+		T originalValue = v;
+
+		int flags = config.Flags;
+
+		// ImGui doesn't support this flag for input scalar natively
+		bool bTrueOnEnter = false;
+		if ((flags & ImGuiInputTextFlags_EnterReturnsTrue))
+		{
+			flags ^= ImGuiInputTextFlags_EnterReturnsTrue;
+			bTrueOnEnter = true;
+		}
+
+		const bool bModified = ImGui::InputScalar(label,
+												  GetImGuiDataTypeFrom<T>(),
+												  (void*)&v,
+												  (void*)(config.Step > 0 ? &config.Step : nullptr),
+												  (void*)(config.StepFast > 0 ? &config.StepFast : nullptr),
+												  config.Fmt,
+												  flags);
+
+		if (bModified)
+		{
+			if (bTrueOnEnter and not ImGui::IsItemDeactivatedAfterEdit())
+			{
+				v = originalValue;
+				return false;
+			}
+
+			if (config.Min)
+				v = std::max(v, *config.Min);
+
+			if (config.Max)
+				v = std::min(v, *config.Max);
+		}
+
+		return bModified;
+	}
+
+	template<std::floating_point T>
+	bool Input(const char* label, Property<T>& property, const InputConfig<T>& config)
+	{
+		T value = property.Get();
+
+		if (Input(label, value, config))
+		{
+			property.Set(value);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	template<std::integral T>
+	bool Input(const char* label, Property<T>& property, const InputConfig<T>& config)
+	{
+		T value = property.Get();
+
+		if (Input(label, value, config))
+		{
+			property.Set(value);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
 } // namespace JPL::ImGuiEx
