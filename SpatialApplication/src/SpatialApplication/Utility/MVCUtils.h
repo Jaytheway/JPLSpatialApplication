@@ -111,6 +111,7 @@ namespace JPL
 	{
 	public:
 		using CallbackFunction = void(*)(void* object, const T& propertyValue);
+		
 		struct Callback
 		{
 			void* Obj;
@@ -176,9 +177,9 @@ namespace JPL
 		}
 
 	protected:
-		void Broadcast(const T& propertyValue)
+		void Broadcast(const T& propertyValue) const
 		{
-			for (Callback& callback : mListeners)
+			for (const Callback& callback : mListeners)
 				std::invoke(callback.Function, callback.Obj, propertyValue);
 		}
 
