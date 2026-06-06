@@ -98,7 +98,10 @@ namespace JPL
 
 		mSound = {};
 
-		const ma_uint32 flags = MA_SOUND_FLAG_DECODE;
+		// mSound.Init can block the GUI thread for a while, if decoding the entire files for some formats,
+		// though it's barely noticeable in Release/Dist build, we still want load the source asynchronously
+		// (using MA_SOUND_FLAG_ASYNC, or MA_SOUND_FLAG_STREAM)
+		const ma_uint32 flags = MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_ASYNC;
 		if (not JPL_ENSURE(mSound.Init(file.string().c_str(), flags, /* use source's out channel count*/ true)))
 		{
 			return;
