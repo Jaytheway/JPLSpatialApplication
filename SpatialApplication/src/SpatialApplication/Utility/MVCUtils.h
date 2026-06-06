@@ -208,6 +208,15 @@ namespace JPL
 
 		const T& Get() const { return mValue; }
 
+		// Sometimes underlying value object may be changed outside of this Property,
+		// (e.g. if the value is pointer and pointed to object's internal stange has 
+		// changed)
+		// This should be used cautiously, since it retriggers the update listeners
+		// even when the value hasn't changed.
+		void BroadcastUpdate() const { PropertyChangeBroadcaster<T>::Broadcast(mValue); }
+
+		Coro::PropertyAwaiter<T> operator co_await() { return Coro::PropertyAwaiter<T>{ .Parent = *this }; }
+
 	private:
 		T mValue;
 	};
