@@ -131,6 +131,26 @@ namespace JPL
 				mListeners.push_back(callback);
 		}
 
+		/// Add change callback function that takes pointer to the object as first argument
+		/// and value T as second.
+		template<class ObjectType, class CallbackFuntionType> requires (std::invocable<CallbackFuntionType, ObjectType*, const T&>)
+		void AddChangeCallback(ObjectType* object, CallbackFuntionType callbackFunction)
+		{
+			if (object == nullptr || callbackFunction == nullptr)
+				return;
+
+			Callback callback{
+				.Obj = object,
+				.Function = [](void* obj, const T& property)
+				{
+					std::invoke(CallbackFuntionType{}, static_cast<ObjectType*>(obj), property);
+				}
+			};
+
+			if (std::ranges::find(mListeners, callback) == std::ranges::end(mListeners))
+				mListeners.push_back(callback);
+		}
+
 		template<auto MemberFunction, class ObjectType>
 		void AddChangeCallback(ObjectType* obj)
 		{
