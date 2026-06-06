@@ -19,6 +19,8 @@
 
 #include "ImGuiUtils.h"
 
+#include "ImGui/ImGuiScopedUtils.h"
+
 namespace JPL::ImGuiEx
 {
 	void SetTooltip(std::string_view text, float delayInSeconds, bool allowWhenDisabled, ImVec2 padding)

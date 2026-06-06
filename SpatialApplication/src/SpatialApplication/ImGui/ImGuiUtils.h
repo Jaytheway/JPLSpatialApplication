@@ -19,7 +19,13 @@
 
 #pragma once
 
-#include "ImGui/ImGui.h"
+// To avoid some circular dependencies, we shall inline
+// only necessary headers in ImGuiUtils.h, instead of our ImGui.h
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
+#define IMGUI_DEFINE_MATH_OPERATORS
+#endif
+#include <imgui.h>
+#include <imgui_internal.h>
 
 #include "ImGui/ImGuiStyling.h"
 
