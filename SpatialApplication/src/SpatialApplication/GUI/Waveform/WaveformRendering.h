@@ -19,44 +19,59 @@
 
 #pragma once
 
-#include "ImGui/ImGui.h"
+#include <JPLSpatial/Core.h>
 
+#include "ImGui/ImGui.h"
+#include "Coroutine/Coroutine.h"
+#include "GUI/Waveform/WaveformDataSource.h"
+
+#include <coroutine>
 #include <filesystem>
 #include <vector>
-#include <future>
 
 namespace JPL::GUI
 {
-	class Waveform
+	//==========================================================================
+	/// Provides waveform drawing routine
+	class Waveform : ChangeListener<SampleData>
 	{
+	public:
+		/// Per unit length min/max sample walues
+		/// that represent a waveform
 		struct ChannelData
 		{
 			std::vector<float> Min;
 			std::vector<float> Max;
 		};
+
 	public:
-		Waveform() = default;
-		~Waveform() = default;
-
-		void SetFile(const std::filesystem::path& file);
-		void Draw();
-
-	private:
-		static std::vector<ChannelData> GenerateMinMaxValues(const std::vector<float>& sampleData, uint64_t numFrames, int frameWidth);
+		explicit Waveform(WaveformDataSource& waveformDataSorce);
+		
+		~Waveform() noexcept;
+		
+		bool Draw(const char* itemId);
 
 	private:
-		std::filesystem::path mSelectedFile;
+		Coro::Task<> WaveformUpdateRoutine();
+
+		// ~ Begin ChangeListener<SampleData> interface
+		void OnSourceChanged() override;
+		void OnNewDataAwailable(const SampleData& newSampleData) override;
+		// ~ End ChangeListener<SampleData> interface
+
+	private:
+		WaveformDataSource& mDataSource;
+		SampleData mSampleDataCache;
+
+		Coro::Task<> mWaveformUpdateRoutine;
+		Coro::Flag mWaveformNeedsUpdate;
+		bool bUpdatingWaveform = false;
+		
+		std::vector<ChannelData> mChannelData;
+		int mWaveformWidthPx = 0;
 
 		ImColor mWaveformFillColour = JPL::GUI::Colours::Theme::Selected;
 		ImColor mWaveformLineColour = JPL::GUI::Colours::Theme::Selected;
 		float mLineThickness = 1.0f;
-
-		std::vector<ChannelData> mChannelData;
-		int mWaveformWidthPx = 0;
-
-		// Sample data must only be accessed from the waveform processing thread
-		std::vector<float> mSampleData;
-		std::future<std::vector<ChannelData>> mFutureChannelData;
-
 	};
 } // namespace JPL::GUI
