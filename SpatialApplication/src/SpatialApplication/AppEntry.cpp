@@ -18,6 +18,7 @@
 //   CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "ImGui/ImGui.h"
+#include "Config.h"
 
 #include "Walnut/Application.h"
 #include "Walnut/EntryPoint.h"
@@ -58,6 +59,7 @@ namespace JPL
 	{
 	public:
 		JPLSpatialApplicationLayer()
+			: mEventsLoop(&EventsLoop::Get())
 		{
 			mDirectSoundModel = std::make_shared<JPL::DirectSoundModel>();
 			mAudioPlaybackLayer = std::make_shared<AudioPlaybackLayer>(mDirectSoundModel);
@@ -77,6 +79,8 @@ namespace JPL
 
 		virtual void OnAttach() override
 		{
+			mEventsLoop = &EventsLoop::Get();
+
 			sLogoImage = std::make_shared<Walnut::Image>(JPLSA_APP_LOGO_WIDTH,
 														 JPLSA_APP_LOGO_HEIGHT,
 														 Walnut::ImageFormat::RGBA,
@@ -88,6 +92,8 @@ namespace JPL
 
 		virtual void OnDetach() override
 		{
+			mEventsLoop = nullptr;
+
 			ImPlot::DestroyContext();
 
 			sLogoImage.reset();
@@ -95,6 +101,12 @@ namespace JPL
 
 		virtual void OnUIRender() override
 		{
+			if (mEventsLoop)
+			{
+				mEventsLoop->Process();
+			}
+
+
 #ifndef WL_DIST // just to be sure
 			ImGui::ShowDemoWindow();
 #endif
@@ -188,6 +200,8 @@ namespace JPL
 		}
 
 	private:
+		EventsLoop* mEventsLoop = nullptr;
+
 		JPL::ChannelMap mSourceChannelSet;
 
 		std::shared_ptr<JPL::DirectSoundModel> mDirectSoundModel;
