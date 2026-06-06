@@ -37,6 +37,7 @@
 #include "Layers/AudioPlaybackLayer.h"
 #include "Layers/RoomLayer.h"
 
+#include "Systems/EventsLoop.h"
 #include <implot.h>
 
 #include <filesystem>
