@@ -199,7 +199,7 @@ namespace JPL
 
 		void Set(const T& newValue)
 		{
-			if (newValue != mValue)
+			if (not Equal{}(newValue, mValue))
 			{
 				mValue = newValue;
 				PropertyChangeBroadcaster<T>::Broadcast(mValue);
