@@ -28,6 +28,7 @@ namespace JPL
 
 	AudioPlayerGUI::AudioPlayerGUI(AudioPlayer& audioPlayer)
 		: mAudioPlayer(audioPlayer)
+		, mAudioPreview(mWaveformDataSource)
 	{
 		mAudioPlayer.AddListener(this);
 	}
@@ -138,14 +139,14 @@ namespace JPL
 			});
 #endif
 
-			JPL::ImGuiEx::Child("Waveform", [&]
+			JPL::ImGuiEx::Child("Audio Preview", [&]
 			{
 				// Store current cursor position and bounds available
 				const ImVec2 start = ImGui::GetCursorScreenPos();
 				const ImVec2 end = start + ImGui::GetContentRegionAvail();
 
-				// Draw waveform
-				mWaveform.Draw();
+				// Draw audio preview
+				const bool wasLeftClicked = mAudioPreview.Draw("Audio Player Audio Preview");
 
 				// Draw playback cursor
 				const float playbackCursor = mAudioPlayer.GetCursorPosition();
@@ -158,24 +159,24 @@ namespace JPL
 					const ImVec2 max = ImVec2(min.x + cursorThickness, end.y);
 
 					drawList->AddRectFilled(min, max, cursorColour);
-
 				}
 
-				// Setup click to seek functionality
-				ImGui::SetCursorScreenPos(start);
-				const ImVec2 waveformRectSize = end - start;
-				if (ImGui::InvisibleButton("Waveform Button", waveformRectSize, ImGuiButtonFlags_PressedOnClickRelease))
+				// If clicked on the audio preview item
+				if (wasLeftClicked)
 				{
+					// Setup click to seek functionality
+					const ImVec2 waveformRectSize = end - start;
 					const ImVec2 clickedPos = ImGui::GetMousePos() - start;
 					const float position = clickedPos.x / waveformRectSize.x;
+
 					mAudioPlayer.SeekToPosition(position);
 				}
-			}); // Waveform
+			}); // Audio Preview
 		}); // Audio Player
 	}
 
 	void AudioPlayerGUI::OnAudioFileChanged(const std::filesystem::path& file)
 	{
-		mWaveform.SetFile(file);
+		mWaveformDataSource.SetFile(file);
 	}
 } // namespace JPL

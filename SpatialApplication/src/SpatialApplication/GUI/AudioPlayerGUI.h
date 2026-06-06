@@ -2,11 +2,11 @@
 //      ██╗██████╗     ██╗     ██╗██████╗ ███████╗
 //      ██║██╔══██╗    ██║     ██║██╔══██╗██╔════╝		** JPL Spatial Application **
 //      ██║██████╔╝    ██║     ██║██████╔╝███████╗
-// ██   ██║██╔═══╝     ██║     ██║██╔══██╗╚════██║		https://github.com/Jaytheway/JPLSpatial
+// ██   ██║██╔═══╝     ██║     ██║██╔══██╗╚════██║		https://github.com/Jaytheway/JPLSpatialApplication
 // ╚█████╔╝██║         ███████╗██║██████╔╝███████║
 //  ╚════╝ ╚═╝         ╚══════╝╚═╝╚═════╝ ╚══════╝
 //
-//   Copyright Jaroslav Pevno, JPL Spatial Application is offered under the terms of the ISC license:
+//   Copyright 2026 Jaroslav Pevno, JPL Spatial Application is offered under the terms of the ISC license:
 //
 //   Permission to use, copy, modify, and/or distribute this software for any purpose with or
 //   without fee is hereby granted, provided that the above copyright notice and this permission
@@ -20,7 +20,9 @@
 #pragma once
 
 #include "Controller/AudioPlayer.h"
-#include "GUI/WaveformRendering.h"
+#include "GUI/AudioPreview.h"
+#include "GUI/Waveform/WaveformRendering.h"
+#include "GUI/Spectrogram/SpectrogramRendering.h"
 
 #include <filesystem>
 
@@ -40,6 +42,7 @@ namespace JPL
 
 	private:
 		AudioPlayer& mAudioPlayer;
-		JPL::GUI::Waveform mWaveform;
+		GUI::AudioFileWaveformDataSource mWaveformDataSource;
+		GUI::AudioPreview mAudioPreview;
 	};
 } // namespace JPL
