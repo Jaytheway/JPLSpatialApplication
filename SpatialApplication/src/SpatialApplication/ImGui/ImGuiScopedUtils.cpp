@@ -30,4 +30,21 @@ namespace JPL::ImGuiEx
 	{
 		ImGuiEx::EndDisabled();
 	}
+
+	ScopedGroup::~ScopedGroup()
+	{
+		ImGui::EndGroup();
+
+		// Assing last item ID, if use requested the group to have a specifice ID to be able to do hover/click checks more reliably.
+		// 
+		// ImGui::EndGroup assigns LastItemData.ID from the ActiveID (active widget inside of it), if any is active,
+		// when that's the case, we don't override it with our use ID.
+
+		ImGuiContext& g = *GImGui;
+
+		if (ID != 0 and g.LastItemData.ID == 0)
+		{
+			ImGui::SetLastItemData(ID, g.LastItemData.ItemFlags, g.LastItemData.StatusFlags, g.LastItemData.Rect);
+		}
+	}
 } // namespace JPL::ImGuiEx

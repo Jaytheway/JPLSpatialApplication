@@ -241,4 +241,22 @@ namespace JPL::ImGuiEx
 		~ScopedDisable();
 	};
 
+	// Adds ImGui::Spacing at the beginning and the end of the scope
+	class ScopedSpacing : private NonCopyable
+	{
+	public:
+		ScopedSpacing() { ImGui::Spacing(); }
+		~ScopedSpacing() { ImGui::Spacing(); }
+	};
+
+	// User ID can be provided for the group to be set as LastItemID
+	// to be able to do hover/click checks more reliably.
+	class ScopedGroup : private NonCopyable
+	{
+		ImGuiID ID = 0;
+	public:
+		ScopedGroup(ImGuiID id = 0) : ID(id) { ImGui::BeginGroup(); }
+		~ScopedGroup();
+	};
+
 } // namespace JPL::ImGuiEx
