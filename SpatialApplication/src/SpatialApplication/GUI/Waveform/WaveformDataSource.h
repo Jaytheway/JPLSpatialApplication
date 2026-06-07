@@ -73,6 +73,8 @@ namespace JPL::GUI
 
 		void SetFile(const std::filesystem::path& filepath);
 
+		const std::filesystem::path& GetCurrentFile() const { return mFilepath.Get(); }
+
 	private:
 		[[nodiscard]] Coro::Task<> ReadSampleDataRoutine();
 
