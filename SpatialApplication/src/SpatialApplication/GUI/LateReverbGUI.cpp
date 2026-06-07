@@ -80,42 +80,7 @@ namespace JPL
 	{
 	}
 
-	void LateReverbGUI::Draw()
-	{
-		using namespace JPL::ImGuiEx;
-
-		const ChildConfig propsPanelConfig
-		{
-			.ChildFlags = ImGuiChildFlags_AutoResizeY
-		};
-
-		Child("Late Reverb Properties", propsPanelConfig, [&]
-		{
-			if (not mModel)
-				return;
-
-			LayoutHorizontal("Props Layout", [&]
-			{
-				ImGuiEx::DrawGEQ("RT60",
-								 mModel->T60,
-								 cBandCenters,
-								 LateReverbModel::cMinReverbTime,
-								 LateReverbModel::cMaxReverbTime);
-		
-				// TODO: this is weird
-				LayoutVertical("vert", [&]
-				{
-					LayoutHorizontal("hor", [&]
-					{
-						LayoutVertical("Sliders", ImVec2(290.0f, 0), 0.0f, [&]
-						{
-							ScopedItemWidth width(200.0f);
-
-							Slider("ER Level", mModel->DryLevel, 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
-							Slider("Reverb Level", mModel->WetLevel, 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
-						});
-
-#if JPL_PROFILE_IR_GEN
+#if 0 // JPL_PROFILE_IR_GEN
 						LayoutVertical("IR Info", [&]
 						{
 							/*if (ImGui::Button("Update Waveform"))
@@ -126,16 +91,68 @@ namespace JPL
 							ImGui::TextDisabled("IR Updated in %.3f ms", IRGenTime);
 						});
 #endif // JPL_PROFILE_IR_GEN
-					});
 
-					Child("IR Audio Preview", [this]
-					{
-						mIRAudioPreview.Draw("IR Audio Preview");
-					});
-				});
+	void LateReverbGUI::Draw()
+	{
+		if (not mModel)
+			return;
+		
+		using namespace JPL::ImGuiEx;
+
+		static bool bShowIRAudioPreview = false;
+
+		//Child("Late Reverb Properties", propsPanelConfig, [&]
+		//{
+		LayoutHorizontal("Props Layout", [&]
+		{
+			ImGuiEx::DrawGEQ("RT60",
+							 mModel->T60,
+							 cBandCenters,
+							 LateReverbModel::cMinReverbTime,
+							 LateReverbModel::cMaxReverbTime,
+							 ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 3.0f));
+
+			LayoutVertical("vert", [&]
+			{
+				// ImGui doesn't include label size into item size calculation,
+				// which causes lable to be cropped out, so we have to manually
+				// set the width and factor in label size.
+				const float maxWidth = 140.0f;
+				const float labelSize = 100.0f; // arbitrary number to fit our label
+				ScopedItemWidth width(ImMin(maxWidth, ImGui::GetContentRegionAvail().x - labelSize));
+
+				Slider("ER Level", mModel->DryLevel, 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
+				Slider("Reverb Level", mModel->WetLevel, 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
+
+				ImGui::Checkbox("Show IR", &bShowIRAudioPreview);
 			});
 		});
+
+		if (bShowIRAudioPreview)
+		{
+			const ImVec2 windowPaddingBckp = ImGui::GetStyle().WindowPadding;
+
+			// Remove padding for the window displaying IR
+			ScopedStyle removePadding(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+			const WindowConfig config
+			{
+				.Size = ImVec2(300.0f, 150.0f),
+				.SizeCond = ImGuiCond_FirstUseEver,
+				.MinSize = ImVec2(200.0f, 100.0f),
+				.Flags = ImGuiWindowFlags_NoCollapse
+			};
+
+			Window("Reverb IR Preview", config, [&]
+			{
+				// Restore padding for any pupups created by the Audio Preview
+				ScopedStyle restorePadding(ImGuiStyleVar_WindowPadding, windowPaddingBckp);
+
+				mIRAudioPreview.Draw("IR Audio Preview");
+			}, &bShowIRAudioPreview);
+		}
 	}
+
 
 	void LateReverbGUI::RefreshReverbProperties()
 	{

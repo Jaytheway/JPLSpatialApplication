@@ -61,9 +61,6 @@ namespace JPL
         MinimalVec3 roomSize = mModel.RoomSize.Get().Size;
 
         const ImVec2 availableSize = ImGui::GetContentRegionAvail();
-
-
-        const auto autoResizeY = ImGuiChildFlags_AutoResizeY;
         const auto autoResizeXY = ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX;
 
         Child("PropertiesFrame", ChildConfig{.ChildFlags = autoResizeXY }, [&]
@@ -129,118 +126,6 @@ namespace JPL
                         mModel.Listener.Set({ newListenerPos });
                     }
                 }
-            });
-        });
-
-        ImGui::SameLine();
-
-        auto drawPropsMaterial = [&]
-        {
-            const AcousticMaterial* selectedMaterial = mModel.SurfaceMaterial.Get();
-
-            static uint32 selectedMaterialId = selectedMaterial->ID;
-            const AcousticMaterial* customMaterial = AcousticMaterial::Get("< CUSTOM >");
-            JPL_ASSERT(customMaterial);
-
-            ScopedItemWidth width(210.0f);
-            {
-                ScopedItemOutline outline("Surface Material");
-
-                std::string_view currentMaterial = selectedMaterial->Name;
-
-                if (ImGui::BeginCombo("Surface Material", currentMaterial.data()))
-                {
-                    const auto& acousticMaterials = AcousticMaterial::GetListOfMaterials();
-
-                    for (const auto& [id, material] : acousticMaterials)
-                    {
-                        bool bSelected = id == selectedMaterialId;
-                        if (ImGui::Selectable(material.Name.data(), &bSelected))
-                        {
-                            selectedMaterialId = id;
-                            mModel.SurfaceMaterial.Set(&material);
-                        }
-                    }
-                    ImGui::EndCombo();
-                }
-                ImGuiEx::SetTooltip(currentMaterial);
-            }
-
-            // Selected material properties
-            if (selectedMaterial)
-            {
-                static constexpr float minAbsorption = 0.01f;
-                static constexpr float maxAbsorption = 0.99f;
-
-                float absorptionBands[4]{}; selectedMaterial->Coeffs.store(absorptionBands);
-                float bandCenters[4]{}; cBandCenters.store(bandCenters);
-
-                const bool bSelectedCustomMaterial = selectedMaterial == customMaterial;
-
-                // We don't want to modify default materials
-                ScopedDisable disable(not bSelectedCustomMaterial);
-
-				const uint32 modifiedBand = ImGuiEx::DrawGEQ("Absorption",
-															 absorptionBands, bandCenters,
-															 minAbsorption, maxAbsorption,
-															 ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 2.0f));
-
-                if (bSelectedCustomMaterial)
-                {
-                    static bool bLinked = false;
-                    {
-                        ScopedItemOutline outline("Link");
-                        ImGui::SameLine();
-                        ImGui::Checkbox("Link", &bLinked);
-                    }
-                    
-                    if (modifiedBand)
-                    {
-                        const simd modifiedAbsorption = bLinked
-                                                      ? simd(absorptionBands[modifiedBand - 1])
-                                                      : simd(absorptionBands);
-
-                        AcousticMaterial::SetMaterial("< CUSTOM >", modifiedAbsorption);
-                        mModel.SurfaceMaterial.BroadcastUpdate();
-
-                    }
-                }
-            }
-        };
-            
-        auto drawPropsER = [&]
-        {
-            PropertyCheckbox("Enable Specular Reflections", mModel.EnableSpecular);
-
-            ImGui::Spacing();
-
-            ScopedDisable disable(not mModel.EnableSpecular.Get());
-            ScopedItemWidth width(210.0f);
-
-            Input("Num Prim. Rays", mModel.NumPrimaryRays, InputConfig<uint32>{.Step = 1, .StepFast = 100, .Fmt = "%d" });
-            Input("Max Spec. Order", mModel.MaxOrder, InputConfig<uint32>{.Step = 1, .StepFast = 100, .Fmt = "%d", .Max = uint32(SpecularRayTracing::cMaxOrder) });
-        };
-
-        auto drawPropsDirectSound = [&]
-        {
-            PropertyCheckbox("Enable Direct Sound", mModel.EnableDirect);
-
-            ImGui::Spacing();
-
-            ScopedDisable disable(not mModel.EnableDirect.Get());
-
-            PropertyCheckbox("Air Absorption", mModel.DirectSound->EnableAirAbsorption); ImGui::SameLine();
-            PropertyCheckbox("Distance Attenuation", mModel.DirectSound->EnableDistanceAttenuation);
-            PropertyCheckbox("Propagaion Delay", mModel.DirectSound->EnablePropagationDelay);
-        };
-
-        Child("Props", ChildConfig{.ChildFlags = autoResizeY }, [&]
-        {
-            ImGuiEx::TabBar("Properties", [&]
-            {
-                ImGuiEx::TabItem("Early Reflections", drawPropsER);
-                ImGuiEx::TabItem("Direct Sound", drawPropsDirectSound);
-                ImGuiEx::TabItem("Surface Material", drawPropsMaterial);
             });
         });
 

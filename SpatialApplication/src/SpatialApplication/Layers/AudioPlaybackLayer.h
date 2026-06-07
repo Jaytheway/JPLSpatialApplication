@@ -24,7 +24,6 @@
 #include "ImGui/ImGui.h"
 #include "GUI/DirectoryDisplay.h"
 #include "GUI/AudioPlayerGUI.h"
-#include "GUI/LateReverbGUI.h"
 #include "GUI/LoudnessMeter.h"
 #include "Model/VBAPModel.h"
 #include "Model/DirectSoundModel.h"
@@ -67,7 +66,9 @@ namespace JPL
 							, public GenericChangeListener
 	{
 	public:
-		explicit AudioPlaybackLayer(std::shared_ptr<DirectSoundModel> directSoundModel);
+		AudioPlaybackLayer(const std::shared_ptr<DirectSoundModel>& directSoundModel,
+						   const std::shared_ptr<LateReverbModel>& lateReverbModel);
+
 		~AudioPlaybackLayer();
 
 		// ~ Begin Walnut::Layer interface
@@ -122,12 +123,11 @@ namespace JPL
 		std::vector<typename ERBus::ERUpdateData> mTaps;
 
 		// Late Reverb stuff
-		std::shared_ptr<LateReverbModel> mLateReverbModel{ std::make_shared<LateReverbModel>() };
+		std::shared_ptr<LateReverbModel> mLateReverbModel;
 		std::unique_ptr<ReverbBus> mLateReverb;
 		std::unique_ptr<Effect> mImpulseSource;
 		std::unique_ptr<Effect> mReverbEffectBus;
 		std::atomic<bool> mSendImpulse{ false };
-		std::unique_ptr<LateReverbGUI> mLateReverbGUI{ std::make_unique<LateReverbGUI>(mLateReverbModel) };
 		std::atomic<float> mERLevel{ 0.5f };
 		std::atomic<float> mLateReverbLevel{ 0.5f };
 

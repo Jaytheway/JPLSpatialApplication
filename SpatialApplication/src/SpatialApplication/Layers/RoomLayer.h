@@ -22,6 +22,7 @@
 #include <Walnut/Layer.h>
 
 #include "GUI/RoomView.h"
+#include "GUI/LateReverbGUI.h"
 #include "Model/RoomModel.h"
 #include "Model/DirectSoundModel.h"
 #include "Model/LateReverbModel.h"
@@ -54,7 +55,9 @@ namespace JPL
 					, public ChangeBroadcaster<RoomLayer>
 	{
 	public:
-		explicit RoomLayer(std::shared_ptr<JPL::DirectSoundModel> directSoundModel);
+		RoomLayer(const std::shared_ptr<DirectSoundModel>& directSoundModel,
+				  const std::shared_ptr<LateReverbModel>& lateReverbModel);
+
 		~RoomLayer();
 
 		// ~ Begin Walnut::Layer interface
@@ -82,7 +85,10 @@ namespace JPL
 		RoomModel mRoom;
 		RoomView mRoomView{ mRoom };
 
-		std::shared_ptr<JPL::DirectSoundModel> mDirectSoundModel;
+		std::shared_ptr<DirectSoundModel> mDirectSoundModel;
+		std::shared_ptr<LateReverbModel> mLateReverbModel;
+
+		LateReverbGUI mLateReverbGUI;
 
 		ERTracer mERTracer;
 		std::vector<typename JPL::ERBus::ERUpdateData> mTaps;

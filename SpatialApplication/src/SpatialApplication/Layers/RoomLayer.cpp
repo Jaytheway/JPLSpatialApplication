@@ -77,8 +77,13 @@ namespace JPL
 	};
 	using PerfMeterRayTracing = PerformanceMetering<RayTracinMetering>;
 
-	RoomLayer::RoomLayer(std::shared_ptr<JPL::DirectSoundModel> directSoundModel)
+
+	//==========================================================================
+	RoomLayer::RoomLayer(const std::shared_ptr<DirectSoundModel>& directSoundModel,
+						 const std::shared_ptr<LateReverbModel>& lateReverbModel)
 		: mDirectSoundModel(directSoundModel)
+		, mLateReverbModel(lateReverbModel)
+		, mLateReverbGUI(mLateReverbModel)
 	{
 		JPL_ASSERT(directSoundModel);
 		mRoom.DirectSound = mDirectSoundModel;
@@ -134,17 +139,148 @@ namespace JPL
 			.DockFlags = ImGuiDockNodeFlags_NoDockingOverMe | ImGuiDockNodeFlags_NoDockingOverOther
 		};
 
-		JPL::ImGuiEx::Window("RoomWindow", [&]
+		Window("RoomWindow", [&]
 		{
 			Child("Properties", ChildConfig{ .Size = ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 6.0f) }, [&]
 			{
+				// Draw Room properties first
 				mRoomView.DrawProperties();
+
+				// Then draw our various environment/propagation properties
+				ImGui::SameLine();
+
+				auto drawPropsMaterial = [&]
+				{
+					const AcousticMaterial* selectedMaterial = mRoom.SurfaceMaterial.Get();
+
+					static uint32 selectedMaterialId = selectedMaterial->ID;
+					const AcousticMaterial* customMaterial = AcousticMaterial::Get("< CUSTOM >");
+					JPL_ASSERT(customMaterial);
+
+					ScopedItemWidth width(210.0f);
+					{
+						ScopedItemOutline outline("Surface Material");
+
+						std::string_view currentMaterial = selectedMaterial->Name;
+
+						if (ImGui::BeginCombo("Surface Material", currentMaterial.data()))
+						{
+							const auto& acousticMaterials = AcousticMaterial::GetListOfMaterials();
+
+							for (const auto& [id, material] : acousticMaterials)
+							{
+								bool bSelected = id == selectedMaterialId;
+								if (ImGui::Selectable(material.Name.data(), &bSelected))
+								{
+									selectedMaterialId = id;
+									mRoom.SurfaceMaterial.Set(&material);
+								}
+							}
+							ImGui::EndCombo();
+						}
+						ImGuiEx::SetTooltip(currentMaterial);
+					}
+
+					// Selected material properties
+					if (selectedMaterial)
+					{
+						static constexpr float minAbsorption = 0.01f;
+						static constexpr float maxAbsorption = 0.99f;
+
+						float absorptionBands[4]{}; selectedMaterial->Coeffs.store(absorptionBands);
+						float bandCenters[4]{}; cBandCenters.store(bandCenters);
+
+						const bool bSelectedCustomMaterial = selectedMaterial == customMaterial;
+
+						// We don't want to modify default materials
+						ScopedDisable disable(not bSelectedCustomMaterial);
+
+						const uint32 modifiedBand = ImGuiEx::DrawGEQ("Absorption",
+																	 absorptionBands, bandCenters,
+																	 minAbsorption, maxAbsorption,
+																	 ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 2.0f));
+
+						if (bSelectedCustomMaterial)
+						{
+							static bool bLinked = false;
+							{
+								ScopedItemOutline outline("Link");
+								ImGui::SameLine();
+								ImGui::Checkbox("Link", &bLinked);
+							}
+
+							if (modifiedBand)
+							{
+								const simd modifiedAbsorption = bLinked
+									? simd(absorptionBands[modifiedBand - 1])
+									: simd(absorptionBands);
+
+								AcousticMaterial::SetMaterial("< CUSTOM >", modifiedAbsorption);
+								mRoom.SurfaceMaterial.BroadcastUpdate();
+
+							}
+						}
+					}
+				};
+
+				auto drawPropsER = [&]
+				{
+					PropertyCheckbox("Enable Specular Reflections", mRoom.EnableSpecular);
+
+					ImGui::Spacing();
+
+					ScopedDisable disable(not mRoom.EnableSpecular.Get());
+					ScopedItemWidth width(210.0f);
+
+					Input("Num Prim. Rays", mRoom.NumPrimaryRays, InputConfig<uint32>{.Step = 1, .StepFast = 100, .Fmt = "%d" });
+					Input("Max Spec. Order", mRoom.MaxOrder, InputConfig<uint32>{.Step = 1, .StepFast = 100, .Fmt = "%d", .Max = uint32(SpecularRayTracing::cMaxOrder) });
+				};
+
+				auto drawPropsDirectSound = [&]
+				{
+					PropertyCheckbox("Enable Direct Sound", mRoom.EnableDirect);
+
+					ImGui::Spacing();
+
+					ScopedDisable disable(not mRoom.EnableDirect.Get());
+
+					PropertyCheckbox("Air Absorption", mRoom.DirectSound->EnableAirAbsorption); ImGui::SameLine();
+					PropertyCheckbox("Distance Attenuation", mRoom.DirectSound->EnableDistanceAttenuation);
+					PropertyCheckbox("Propagaion Delay", mRoom.DirectSound->EnablePropagationDelay);
+				};
+
+				auto drawPropsLateReverb = [&]
+				{
+					/*if (ImGui::Button("Impulse"))
+					{
+						if (mImpulseSource)
+						{
+							mSendImpulse.store(true, std::memory_order_release);
+						}
+					}*/
+					// TODO: mixing mode selection
+					mLateReverbGUI.Draw();
+				};
+				
+				const auto autoResizeY = ImGuiChildFlags_AutoResizeY;
+
+				Child("Props", ChildConfig{ .ChildFlags = autoResizeY }, [&]
+				{
+					ImGuiEx::TabBar("Properties", [&]
+					{
+						ImGuiEx::TabItem("Early Reflections", drawPropsER);
+						ImGuiEx::TabItem("Direct Sound", drawPropsDirectSound);
+						ImGuiEx::TabItem("Surface Material", drawPropsMaterial);
+						ImGuiEx::TabItem("Late Reverb", drawPropsLateReverb);
+					});
+				});
 			});
 
 			Layout<Spacer>();
 			
 			const ImVec2 roomCanvasPosition = ImGui::GetCursorScreenPos();
-			
+
+			// Draw info text over the Room View
 			if (ImDrawList* canvasDrawList = mRoomView.DrawEnvironment())
 			{
 				// Draw info text
@@ -156,6 +292,11 @@ namespace JPL
 			}
 
 		}, nullptr, config);
+		{
+			{
+				{
+
+#endif
 
 	}
 

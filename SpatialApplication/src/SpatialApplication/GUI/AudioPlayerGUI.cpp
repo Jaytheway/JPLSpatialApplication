@@ -148,28 +148,38 @@ namespace JPL
 				// Draw audio preview
 				const bool wasLeftClicked = mAudioPreview.Draw("Audio Player Audio Preview");
 
-				// Draw playback cursor
-				const float playbackCursor = mAudioPlayer.GetCursorPosition();
-				if (playbackCursor >= 0.0f)
+				if (mWaveformDataSource.GetCurrentFile().empty())
 				{
 					auto* drawList = ImGui::GetWindowDrawList();
-
-					const float cursorThickness = 3.0f;
-					const ImVec2 min = ImLerp(start, ImVec2(end.x, start.y), playbackCursor) - ImVec2(1.0f, 0.0f);
-					const ImVec2 max = ImVec2(min.x + cursorThickness, end.y);
-
-					drawList->AddRectFilled(min, max, cursorColour);
+					DrawTextCentered(*drawList, start, end,
+									 "No sound source selected",
+									 ImGui::GetColorU32(ImGuiCol_TextDisabled));
 				}
-
-				// If clicked on the audio preview item
-				if (wasLeftClicked)
+				else
 				{
-					// Setup click to seek functionality
-					const ImVec2 waveformRectSize = end - start;
-					const ImVec2 clickedPos = ImGui::GetMousePos() - start;
-					const float position = clickedPos.x / waveformRectSize.x;
+					// Draw playback cursor
+					const float playbackCursor = mAudioPlayer.GetCursorPosition();
+					if (playbackCursor >= 0.0f)
+					{
+						auto* drawList = ImGui::GetWindowDrawList();
 
-					mAudioPlayer.SeekToPosition(position);
+						const float cursorThickness = 3.0f;
+						const ImVec2 min = ImLerp(start, ImVec2(end.x, start.y), playbackCursor) - ImVec2(1.0f, 0.0f);
+						const ImVec2 max = ImVec2(min.x + cursorThickness, end.y);
+
+						drawList->AddRectFilled(min, max, cursorColour);
+					}
+
+					// If clicked on the audio preview item
+					if (wasLeftClicked)
+					{
+						// Setup click to seek functionality
+						const ImVec2 waveformRectSize = end - start;
+						const ImVec2 clickedPos = ImGui::GetMousePos() - start;
+						const float position = clickedPos.x / waveformRectSize.x;
+
+						mAudioPlayer.SeekToPosition(position);
+					}
 				}
 			}); // Audio Preview
 		}); // Audio Player

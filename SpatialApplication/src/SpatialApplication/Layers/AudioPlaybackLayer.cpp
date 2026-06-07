@@ -54,14 +54,20 @@ namespace JPL
 		return sEngine;
 	}
 
-	AudioPlaybackLayer::AudioPlaybackLayer(std::shared_ptr<JPL::DirectSoundModel> directSoundModel)
+	AudioPlaybackLayer::AudioPlaybackLayer(const std::shared_ptr<DirectSoundModel>& directSoundModel,
+										   const std::shared_ptr<LateReverbModel>& lateReverbModel)
 		: mDirectSoundModel(directSoundModel)
+		, mLateReverbModel(lateReverbModel)
 	{
 		JPL_ASSERT(directSoundModel);
 		mDirectSoundModel->AddListener(this);
 	}
 
-	AudioPlaybackLayer::~AudioPlaybackLayer() = default;
+	AudioPlaybackLayer::~AudioPlaybackLayer()
+	{
+		if (mDirectSoundModel)
+			mDirectSoundModel->RemoveListener(this);
+	}
 
 	void AudioPlaybackLayer::OnAttach()
 	{
@@ -185,22 +191,6 @@ namespace JPL
 				});
 			});
 		}); // Audio Player
-
-		Window("Late Reverb", { .Flags = ImGuiWindowFlags_NoCollapse }, [&]
-		{
-			/*if (ImGui::Button("Impulse"))
-			{
-				if (mImpulseSource)
-				{
-					mSendImpulse.store(true, std::memory_order_release);
-				}
-			}*/
-
-			if (mLateReverbGUI)
-			{
-				mLateReverbGUI->Draw();
-			}
-		});
 
 		const WindowConfig config
 		{
@@ -368,8 +358,6 @@ namespace JPL
 		});
 
 
-#if 1
-
 		// The delay buffer is not valid for new soumd,
 		// so we need to reset ER Bus
 		mERProcessor = std::make_unique<JPL::ERBus>();
@@ -462,7 +450,6 @@ namespace JPL
 		// Attach "wet" signal to bus that will render ERs
 		if (not JPL_ENSURE(mSplitter.OutputBus(1).AttachTo(mERBus->GetInput())))
 			return;
-#endif
 
 		// Attach the buses directly to the endpoint
 		//! Note: it's important to do at the very end,

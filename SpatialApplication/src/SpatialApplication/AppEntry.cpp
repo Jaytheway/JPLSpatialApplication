@@ -63,9 +63,10 @@ namespace JPL
 		JPLSpatialApplicationLayer()
 			: mEventsLoop(&EventsLoop::Get())
 		{
-			mDirectSoundModel = std::make_shared<JPL::DirectSoundModel>();
-			mAudioPlaybackLayer = std::make_shared<AudioPlaybackLayer>(mDirectSoundModel);
-			mRoomLayer = std::make_shared<RoomLayer>(mDirectSoundModel);
+			mDirectSoundModel = std::make_shared<DirectSoundModel>();
+			mLateReverbModel = std::make_shared<LateReverbModel>();
+			mAudioPlaybackLayer = std::make_shared<AudioPlaybackLayer>(mDirectSoundModel, mLateReverbModel);
+			mRoomLayer = std::make_shared<RoomLayer>(mDirectSoundModel, mLateReverbModel);
 
 			mAudioPlaybackLayer->SetVBAPModel(mVBAPVis.VBAPModel);
 
@@ -213,7 +214,8 @@ namespace JPL
 
 		JPL::ChannelMap mSourceChannelSet;
 
-		std::shared_ptr<JPL::DirectSoundModel> mDirectSoundModel;
+		std::shared_ptr<DirectSoundModel> mDirectSoundModel;
+		std::shared_ptr<LateReverbModel> mLateReverbModel;
 		std::shared_ptr<AudioPlaybackLayer> mAudioPlaybackLayer;
 		std::shared_ptr<RoomLayer> mRoomLayer;
 
