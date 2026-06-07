@@ -40,4 +40,19 @@ namespace JPL::ImGuiEx
 		drawList.AddLine(lineEnd, arrowStart + Vec2(dir.Y, -dir.X) * arrowSize * 0.5f, colour, 3.0f);
 		drawList.AddLine(lineEnd, arrowStart + Vec2(-dir.Y, dir.X) * arrowSize * 0.5f, colour, 3.0f);
 	}
+
+	void DrawTextCentered(ImDrawList& drawList, const char* text, ImU32 colour)
+	{
+		const ImVec2 bbMin = ImGui::GetCursorScreenPos();
+		const ImVec2 bbMax = bbMin + ImGui::GetContentRegionAvail();
+		DrawTextCentered(drawList, bbMin, bbMax, text, colour);
+	}
+
+	void DrawTextCentered(ImDrawList& drawList, const ImVec2& boundsMin, const ImVec2& boundsMax, const char* text, ImU32 colour)
+	{
+		const ImVec2 textSize = ImGui::CalcTextSize(text);
+		const ImVec2 textPos = ImRect(boundsMin, boundsMax).GetCenter() - textSize * 0.5f;
+		drawList.AddText(textPos, colour, text);
+	}
+
 } // namespace JPL::ImGuiEx

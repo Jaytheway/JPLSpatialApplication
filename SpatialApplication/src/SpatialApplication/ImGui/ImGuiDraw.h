@@ -24,5 +24,11 @@
 namespace JPL::ImGuiEx
 {
 	static void DrawArrow(ImDrawList& drawList, const ImVec2& lineStart, const ImVec2& lineEnd, ImU32 colour, float arrowSize = 12.0f);
+	
+	// Draw text cetnered within rectangle [cursor position, content region available]
+	void DrawTextCentered(ImDrawList& drawList, const char* text, ImU32 colour = ImGui::GetColorU32(ImGuiCol_Text));
+	
+	// Draw text cetnered within rectangle [boundsMin, boundsMax]
+	void DrawTextCentered(ImDrawList& drawList, const ImVec2& boundsMin, const ImVec2& boundsMax, const char* text, ImU32 colour = ImGui::GetColorU32(ImGuiCol_Text));
 
 } // namespace JPL::ImGuiEx

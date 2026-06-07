@@ -246,9 +246,7 @@ namespace JPL::ImGuiEx
 		}
 		
 		// Draw icon text label
-		const ImVec2 textSize = ImGui::CalcTextSize(label);
-		const ImVec2 textPos = ImRect(bbMin, bbMax).GetCenter() - textSize * 0.5f;
-		drawList->AddText(textPos, iconColour, label);
+		DrawTextCentered(*drawList, bbMin, bbMax, label, iconColour);
 
 		return bPressed;
 	}
