@@ -29,7 +29,7 @@
 #define JPL_DEV_BDPT_DBG_GUI 0
 
 // Bypass send direct sound to late reverb, omitting early reflections
-#define JPL_DEV_DIRECT_TO_LR 1
+#define JPL_DEV_DIRECT_TO_LR 0
 
 // Integrate air absorption in BDPT trace step to include its contribution
 // to the resulting energy response.
