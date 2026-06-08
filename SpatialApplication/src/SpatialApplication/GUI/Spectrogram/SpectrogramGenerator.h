@@ -51,28 +51,31 @@ namespace JPL::GUI
 
 	//==========================================================================
 	// TODO: maybe move these somewhere else
-	inline float HzToMel(float hz)
-	{
-		static constexpr float d = 1.0f / 700.0f;
-		return 2595.0f * std::log10(1.0f + hz * d);
-	}
-
-	inline simd HzToMel(simd hz)
-	{
-		static const simd d(1.0f / 700.0f);
-		return 2595.0f * log10(simd(1.0f) + hz * d);
-	}
-
 	inline float MelToHz(float mel)
 	{
-		static constexpr float d = 1.0f / 2595.0f;
-		return 700.0f * (std::pow(10.0f, mel * d) - 1.0f);
+		static constexpr float cInvMelScale = std::numbers::ln10_v<float> / 2595.0f;
+		return 700.0f * (::exp(mel * cInvMelScale) - 1.0f);
 	}
 
-	inline simd MelToHz(simd mel)
+	inline float HzToMel(float hz)
 	{
-		static const simd d(1.0f / 2595.0f);
-		return 700.0f * (pow(10.0f, mel * d) - 1.0f);
+		static constexpr float cMelScale = 2595.0f / std::numbers::ln10_v<float>;
+		static const float d = 1.0f / 700.0f;
+
+		return cMelScale * ::log(1.0f + hz * d);
+	}
+
+	inline simd MelToHz(const simd& mel)
+	{
+		static const simd cInvMelScale(std::numbers::ln10_v<float> / 2595.0f);
+		return simd(700.0f) * (exp(mel * cInvMelScale) - simd(1.0f));
+	}
+
+	inline simd HzToMel(const simd& hz)
+	{
+		static const simd cMelScale(2595.0f / std::numbers::ln10_v<float>);
+		static const simd d(1.0f / 700.0f);
+		return cMelScale * log(simd(1.0f) + hz * d);
 	}
 
 	//==========================================================================
