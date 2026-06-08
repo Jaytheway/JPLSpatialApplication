@@ -208,7 +208,7 @@ namespace JPL::GUI
 
 			// Get magnitued at the row
 			const simd fftBin = hz * fftBinFactor;
-			const simd magnitude = GetMagnitudeAtBin(fftBin); // TODO: don't apply to bin 0 and last
+			const simd magnitude = GetMagnitudeAtBin(fftBin);
 
 			// Convert to dB and normalize
 			const simd db = -GainTodB(magnitude + 1e-7f) + mParams.DisplayDb;
