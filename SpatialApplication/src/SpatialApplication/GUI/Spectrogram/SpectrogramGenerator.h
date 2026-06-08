@@ -24,6 +24,7 @@
 #include <JPLSpatial/Math/SIMD.h>
 #include <JPLSpatial/Math/SIMDMath.h>
 
+#include <numbers>
 #include <memory>
 #include <vector>
 
