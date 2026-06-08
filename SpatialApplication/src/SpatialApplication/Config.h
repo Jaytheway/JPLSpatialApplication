@@ -39,3 +39,6 @@
 
 // Temporarily disabling unfinished Bidirectional Path Tracing
 #define JPL_DEV_HAS_BDPT 0
+
+// Enable Late Reverb preview impulse trigger and "Trigger Impulse" GUI
+#define JPL_DEV_ENABLE_REV_PREVIEW 0

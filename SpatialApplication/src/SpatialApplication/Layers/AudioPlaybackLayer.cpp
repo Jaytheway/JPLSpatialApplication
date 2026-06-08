@@ -129,7 +129,7 @@ namespace JPL
 		mERLevel = mLateReverbModel->DryLevel.Get();
 		mLateReverbLevel = mLateReverbModel->WetLevel.Get();
 
-		//SetupImpulseSource();
+		SetupReverbPreview();
 
 		mPlayer = std::make_unique<AudioPlayer>();
 		mPlayer->SetLooping(true);
@@ -200,15 +200,11 @@ namespace JPL
 
 		Window("Audio Player", config, [&]
 		{
-			// TODO: maybe sprinkle this over everywhere to not have to include imgui.ini to the release
-			//		to have some kind of usable initial layout
-			//ImGui::SetWindowSize(ImVec2(400.0f, 100.0f), ImGuiCond_FirstUseEver);
-
 			if (mAudioPlayerGUI)
 			{
 				mAudioPlayerGUI->Draw();
 			}
-		});// , ImVec2(0.0f, std::min(waveformHeith, ImGui::GetContentRegionAvail().y)));
+		});
 
 		{
 			const WindowConfig meterConfig
@@ -228,6 +224,20 @@ namespace JPL
 				mLoudnessMeter.OnRender(ImGui::GetIO().DeltaTime);
 			});
 		}
+
+#if JPL_DEV_ENABLE_REV_PREVIEW
+		Window("Reverb Test", [&]
+		{
+			// TODO: at the moment it's tricky to trigger something between layers,
+			// otherwise ReverbPreview would be better placed with LateReverbGUI.
+			// Command interface could be a solution some time in the future.
+			if (ImGui::Button("Trigger Impulse"))
+			{
+				if (mReverbPreview)
+					mReverbPreview->TriggerImpulse();
+			}
+		});
+#endif
 	}
 
 	void AudioPlaybackLayer::SetTaps(std::span<const typename JPL::ERBus::ERUpdateData> newTaps)
@@ -466,7 +476,6 @@ namespace JPL
 		mDirectEffectProcessor = nullptr;
 		mReverbEffectBus = nullptr;
 		mLateReverb = nullptr;
-		mImpulseSource = nullptr;
 	}
 
 	void AudioPlaybackLayer::UpdateDirectSoundParameters()
@@ -538,63 +547,18 @@ namespace JPL
 		}
 	}
 
-	void AudioPlaybackLayer::SetupImpulseSource()
+	void AudioPlaybackLayer::SetupReverbPreview()
 	{
-		// TODO: temporarily setting up reverb only for impulse sygnal
-		mLateReverb = std::make_unique<ReverbBus>();
-		mLateReverb->SetRT60(mLateReverbModel->T60.Get());
-		mLateReverb->Prepare(mSampleRate);
-
-#if 0 //JPL_DBG_CONTROLS
-		mLateReverbModel->DryLevel.AddChangeCallback(this, [](AudioPlaybackLayer* self, const float& v)
+#if JPL_DEV_ENABLE_REV_PREVIEW
+		if (JPL_ENSURE(mMeterProcessor != nullptr and mLateReverbModel != nullptr))
 		{
-			self->mLateReverb->SetDryLevel(v);
-		});
-		mLateReverbModel->WetLevel.AddChangeCallback(this, [](AudioPlaybackLayer* self, const float& v)
-		{
-			self->mLateReverb->SetWetLevel(v);
-		});
-#endif
-	
-		const uint32_t numOutChannels = GetMAEngine().GetEndpointBus().GetNumChannels();
-
-		mImpulseSource = std::make_unique<Effect>(1, numOutChannels, [this](JPL::ProcessCallbackData& callback)
-		{
-			// Clear the output first
-			callback.FillOutputWithSilence();
-
-			if (mSendImpulse.exchange(false, std::memory_order_acq_rel))
-			{
-				auto output = callback.GetOutputBuffer(0);
-				const uint32_t numOutChannels = output.getNumChannels();
-
-				for (uint32 ch = 0; ch < numOutChannels; ++ch)
-					output.getChannel(ch).data.data[0] = 1.0f;
-			}
-		});
-
-		mReverbEffectBus = std::make_unique<Effect>(numOutChannels, [this](JPL::ProcessCallbackData& callback)
-		{
-			// Clear the output first
-			callback.FillOutputWithSilence();
-
-			auto input = callback.GetInputBuffer(0);
-			auto output = callback.GetOutputBuffer(0);
-			const uint32_t numInChannels = input.getNumChannels();
-			const uint32_t numOutChannels = output.getNumChannels();
-			const uint32_t numFrames = callback.GetOutputFrameCount();
-			std::span<const float> inData(input.data.data, numFrames * numInChannels);
-			std::span<float> outData(output.data.data, numFrames * numOutChannels);
-
-			{
-				//const auto timer = PerfMeterAudioCallback::MakeScopedTimer();
-				mLateReverb->ProcessInterleaved(inData, outData, numFrames);
-			}
-		});
-
-		if (JPL_ENSURE(mImpulseSource->GetOutput().AttachTo(mReverbEffectBus->GetInput())))
-		{
-			JPL_ENSURE(mReverbEffectBus->GetOutput().AttachTo(mMeterProcessor->GetInput()));
+			mReverbPreview =
+				std::make_shared<ReverbPreview>(
+					mMeterProcessor->GetInput(),
+					mLateReverbModel,
+					mSampleRate);
 		}
+#endif
 	}
+
 } // namespace JPL

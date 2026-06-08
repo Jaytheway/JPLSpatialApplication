@@ -22,6 +22,7 @@
 #include <Walnut/Layer.h>
 
 #include "ImGui/ImGui.h"
+#include "Controller/ReverbPreview.h"
 #include "GUI/DirectoryDisplay.h"
 #include "GUI/AudioPlayerGUI.h"
 #include "GUI/LoudnessMeter.h"
@@ -98,7 +99,7 @@ namespace JPL
 		void UpdateDirectSoundParameters();
 		void ApplyDirectEffectParams();
 
-		void SetupImpulseSource();
+		void SetupReverbPreview();
 
 	private:
 		Directory mDirectory{ "assets\\sound sources" };
@@ -125,11 +126,11 @@ namespace JPL
 		// Late Reverb stuff
 		std::shared_ptr<LateReverbModel> mLateReverbModel;
 		std::unique_ptr<ReverbBus> mLateReverb;
-		std::unique_ptr<Effect> mImpulseSource;
 		std::unique_ptr<Effect> mReverbEffectBus;
-		std::atomic<bool> mSendImpulse{ false };
 		std::atomic<float> mERLevel{ 0.5f };
 		std::atomic<float> mLateReverbLevel{ 0.5f };
+
+		std::shared_ptr<ReverbPreview> mReverbPreview;
 
 		float mSampleRate = 48'000.0f;
 
