@@ -251,13 +251,6 @@ namespace JPL
 
 				auto drawPropsLateReverb = [&]
 				{
-					/*if (ImGui::Button("Impulse"))
-					{
-						if (mImpulseSource)
-						{
-							mSendImpulse.store(true, std::memory_order_release);
-						}
-					}*/
 					// TODO: mixing mode selection
 					mLateReverbGUI.Draw();
 				};
@@ -273,6 +266,12 @@ namespace JPL
 						ImGuiEx::TabItem("Surface Material", drawPropsMaterial);
 						ImGuiEx::TabItem("Late Reverb", drawPropsLateReverb);
 					});
+
+					// We want LateReverbGUI to retain the IR preview window,
+					// if it was requested, even if LateReverbGUI properties
+					// are not drawn.
+					// (separating the two draw functions like this is a bit of a hack, but works)	
+					mLateReverbGUI.DrawPreview();
 				});
 			});
 

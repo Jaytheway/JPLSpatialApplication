@@ -40,6 +40,7 @@ namespace JPL
 		~LateReverbGUI();
 
 		void Draw();
+		void DrawPreview();
 
 	private:
 		void RefreshReverbProperties();
@@ -91,6 +92,8 @@ namespace JPL
 		// we don't want to touch reverb if it's used
 		// by background thread to update IR waveform
 		bool bUpdatingWaveform;
+
+		bool bShowIRAudioPreview;
 		
 		//? Profile
 		//float IRGenTime = 0.0f;

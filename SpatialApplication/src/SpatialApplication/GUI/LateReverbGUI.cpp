@@ -41,6 +41,7 @@ namespace JPL
 		, mIRReverb(std::make_shared<ReverbBus>())
 		, mIRAudioPreview(mIRWaveformSource)
 		, bUpdatingWaveform(false)
+		, bShowIRAudioPreview(false)
 	{
 		JPL_ASSERT(model);
 
@@ -99,8 +100,6 @@ namespace JPL
 		
 		using namespace JPL::ImGuiEx;
 
-		static bool bShowIRAudioPreview = false;
-
 		//Child("Late Reverb Properties", propsPanelConfig, [&]
 		//{
 		LayoutHorizontal("Props Layout", [&]
@@ -127,6 +126,11 @@ namespace JPL
 				ImGui::Checkbox("Show IR", &bShowIRAudioPreview);
 			});
 		});
+	}
+
+	void LateReverbGUI::DrawPreview()
+	{
+		using namespace JPL::ImGuiEx;
 
 		if (bShowIRAudioPreview)
 		{
@@ -152,7 +156,6 @@ namespace JPL
 			}, &bShowIRAudioPreview);
 		}
 	}
-
 
 	void LateReverbGUI::RefreshReverbProperties()
 	{
