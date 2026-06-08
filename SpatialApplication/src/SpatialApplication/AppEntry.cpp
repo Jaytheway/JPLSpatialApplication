@@ -65,6 +65,7 @@ namespace JPL
 		{
 			mDirectSoundModel = std::make_shared<DirectSoundModel>();
 			mLateReverbModel = std::make_shared<LateReverbModel>();
+			
 			mAudioPlaybackLayer = std::make_shared<AudioPlaybackLayer>(mDirectSoundModel, mLateReverbModel);
 			mRoomLayer = std::make_shared<RoomLayer>(mDirectSoundModel, mLateReverbModel);
 
@@ -227,7 +228,6 @@ namespace JPL
 
 /* TODO:
 	- integrate FFT view with filter contrls
-	- implement custom surface material from the filter controlls
 */
 } // namespace JPL
 
