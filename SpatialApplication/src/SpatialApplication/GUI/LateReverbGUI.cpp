@@ -46,7 +46,7 @@ namespace JPL
 		JPL_ASSERT(model);
 
 		// Display spectrogram by default
-		mIRAudioPreview.SetMode(GUI::EAudioPreviewMode::Spectrogram);
+		mIRAudioPreview.SetMode(GUI::EAudioPreviewMode::Waveform);
 
 		mIRWaveformSource.AddListener(this);
 
