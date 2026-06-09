@@ -7,7 +7,7 @@ option(INTERPROCEDURAL_OPTIMIZATION "Enable interprocedural optimizations" OFF)
 
 project(JPLSpatialApplication LANGUAGES CXX)
 project(JPLSpatialApplication LANGUAGES C CXX)
-project(JPLSpatialApplication VERSION 0.1.1)
+project(JPLSpatialApplication VERSION 0.2.0)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
