@@ -4,14 +4,16 @@ Application demonstrating some of the capabilities of [JPL Spatial](https://gith
 
 ![JPL Spatial Application GUI](assets/screenshots/JPLSpatialApplicationGUI.png)
 
-The GUI is drawn using [Dear ImGui](https://github.com/ocornut/imgui) library with a custom framework on top.
+The GUI is drawn using [Dear ImGui](https://github.com/ocornut/imgui) library with custom framework on top.
 
 ## JPL Spatial Features
 - **Direct Sound** (DS) Propagation & Spatialization
-- **Ray Traced Early** (*Specular*) **Reflections** (ERs) *(experimental)*
+- **Ray Traced Early** (*Specular*) **Reflections** (ERs)
+- **Late Reverberation** based on room size, volume, materials and **Air Absorption**
 ---
 - Pannign of **Direct Sound** source is handled by **MDAP** (multiple directions)
 - **Early Reflections** are traced using **Image Source** method and panned by **VBAP** (single directoin per ER)
+- **Late Reverberation** is rendered by **Filter Delay Network** (FDN) **Reverb** with **4-band Crossover Decay Filters**
 - Propagation delay for both, DS and ERs, is rendered by **Interpolating Delay Lines**
 - Propagation filtering (ER *surface absorption*, DS/ER *air absorption*) is processed by **4-band Crossover Filters**
 - *Inverse law* distance attenuation is applied to both DS and ERs
@@ -35,10 +37,14 @@ The GUI is drawn using [Dear ImGui](https://github.com/ocornut/imgui) library wi
 - **Sound Source** can be selected in the **"Sound Sources"** tab/window
 	- a few audio files are available in the repository (and in the release)
 	- *sound source directory* can be selected to play different files
-- **Audio Player** has waveform view and all the expected playback controlls
+- **Audio Player** has and all the expected playback controlls
+- **Audio Preview** attached to **Audio Player** to visualize source audio as *spectrogram* or *waveform*
 - **Loudness Meter** displays *Peak* and *RMS* loundess of the application output; the big number at the top displays current *RMS* value
 
-### Room / Environment Controls
+> [!TIP]
+> You can change display mode of **Audio Preview** in the *Right-Click* context menu, which can also be opened by clicking the settigns button that apperas on hover.
+
+### Room / Environment Parameters
 
 **Room** *(everything is in 3 dimensions)*:
 - Room size
@@ -46,15 +52,34 @@ The GUI is drawn using [Dear ImGui](https://github.com/ocornut/imgui) library wi
 - Listener position
 
 **Early Reflections** (aka **Specular Reflections**, not that *early* at high order):
-- **Max Reflection Order** - maximum allowed reflection order to trace
-- **Surface Material** - changes the material absorption applied to reflected ER paths
 - **Number of Primary Rays** - mainly needed to balance performace vs source detection possiblility *(for a simple shoe-box room, its 6 surfaces can easily be detected with a small number of rays)*
+- **Max Reflection Order** - maximum allowed reflection order to trace
+
+**Direct Sound**
+- Options to Enable/Disable: **Air Absorpiton**, **Distance Attenuation**, **Propagation Delay** (also responsible for *doppler effect*)
+
+**Surface Material**
+
+- Changes material absorption applied to reflected ER paths, as well as estimation of *Reverberation Time*.
+- Sliders display absorption coefficients of the currently selected material in 4 frequency bands
+- **Custom Material** can be selected from the list, which enables manual adjustment of the coefficient sliders
+
+**Late Reverb**:
+- **Reverberation Time** (RT60) in 4 frequency bands reflects the last estimation based on **Room** parameters, can also be manually set by adjusting corresponding sliders
+- **ER Level** controls the level of **Early Reflections** that goes to the main output
+- **Reverb Level** controll the level of the **Late Reverb** that goes to the main output
+- **Show IR** button opens up **Audio Preview** of the reverb *Impulse Response*
 
 > [!TIP]
->**Spatialziation Effects** can be enabled/disabled individuslly for the **Direct Sound** to hear the effect with/without them.
+>**Spatialziation Effects** can be enabled/disabled individually for the **Direct Sound** to hear the effect with/without them.
 >
->**Specular Reflections** and **Directo Sound** can also be muted individually.
+>**Specular Reflections** and **Direct Sound** can also be muted individually.
 
+> [!NOTE] **Routing**
+> - **Direct Sound** is routed to **Early Reflections**
+> - **Early Reflections** are routed to **Late Reverb** after all the propagation attenuations (*distance*, *air absorption*, *material absorption* etc.)
+>
+> If **ERs** are disabled, **Late Reverb** will also be silent.
 
 ## Supported platforms
 - Currently Windows only
