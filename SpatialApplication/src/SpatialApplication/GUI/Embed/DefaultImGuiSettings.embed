@@ -13,13 +13,13 @@ Collapsed=0
 Pos=763,58
 Size=734,672
 Collapsed=0
-DockId=0x00000002,2
+DockId=0x00000008,2
 
 [Window][Sound Sources]
-Pos=763,58
-Size=734,672
+Pos=763,160
+Size=734,570
 Collapsed=0
-DockId=0x00000002,0
+DockId=0x00000008,0
 
 [Window][Audio Player]
 Pos=763,732
@@ -31,7 +31,7 @@ DockId=0x00000003,0
 Pos=845,58
 Size=761,672
 Collapsed=0
-DockId=0x00000002,2
+DockId=0x00000008,2
 
 [Window][RoomWindow]
 Pos=1,58
@@ -45,10 +45,10 @@ Size=849,452
 Collapsed=0
 
 [Window][VBAP]
-Pos=763,58
-Size=734,672
+Pos=763,160
+Size=734,570
 Collapsed=0
-DockId=0x00000002,1
+DockId=0x00000008,1
 
 [Window][Dear ImGui Style Editor]
 Pos=162,55
@@ -60,6 +60,12 @@ Pos=1499,58
 Size=108,876
 Collapsed=0
 DockId=0x00000006,0
+
+[Window][Reverb IR Preview]
+Pos=763,58
+Size=734,100
+Collapsed=0
+DockId=0x00000007,0
 
 [Table][0x782F1D3F,4]
 RefScale=17
@@ -104,13 +110,15 @@ Column 0  Weight=1.0000
 Column 1  Weight=1.0000
 
 [Docking][Data]
-DockSpace       ID=0xB0F8A8CA Window=0x7CF38D7C Pos=239,199 Size=1606,876 Split=X
-  DockNode      ID=0x00000005 Parent=0xB0F8A8CA SizeRef=1496,876 Split=X
-    DockNode    ID=0x00000004 Parent=0x00000005 SizeRef=760,876 CentralNode=1 HiddenTabBar=1 Selected=0x3FDD7DC4
-    DockNode    ID=0x00000001 Parent=0x00000005 SizeRef=734,876 Split=Y Selected=0x5A344898
-      DockNode  ID=0x00000002 Parent=0x00000001 SizeRef=550,672 Selected=0x39B00B7E
-      DockNode  ID=0x00000003 Parent=0x00000001 SizeRef=550,202 HiddenTabBar=1 Selected=0x4540E930
-  DockNode      ID=0x00000006 Parent=0xB0F8A8CA SizeRef=108,876 HiddenTabBar=1 Selected=0x16A19006
+DockSpace         ID=0xB0F8A8CA Window=0x7CF38D7C Pos=-2321,-68 Size=1606,876 Split=X
+  DockNode        ID=0x00000005 Parent=0xB0F8A8CA SizeRef=1496,876 Split=X
+    DockNode      ID=0x00000004 Parent=0x00000005 SizeRef=760,876 CentralNode=1 HiddenTabBar=1 Selected=0x3FDD7DC4
+    DockNode      ID=0x00000001 Parent=0x00000005 SizeRef=734,876 Split=Y Selected=0x5A344898
+      DockNode    ID=0x00000002 Parent=0x00000001 SizeRef=550,672 Split=Y Selected=0x39B00B7E
+        DockNode  ID=0x00000007 Parent=0x00000002 SizeRef=734,100 HiddenTabBar=1 Selected=0xF30172C7
+        DockNode  ID=0x00000008 Parent=0x00000002 SizeRef=734,570 Selected=0x39B00B7E
+      DockNode    ID=0x00000003 Parent=0x00000001 SizeRef=550,202 HiddenTabBar=1 Selected=0x4540E930
+  DockNode        ID=0x00000006 Parent=0xB0F8A8CA SizeRef=108,876 HiddenTabBar=1 Selected=0x16A19006
 
 
 )";
