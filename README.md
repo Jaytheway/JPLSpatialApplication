@@ -75,7 +75,8 @@ The GUI is drawn using [Dear ImGui](https://github.com/ocornut/imgui) library wi
 >
 >**Specular Reflections** and **Direct Sound** can also be muted individually.
 
-> [!NOTE] **Routing**
+> [!NOTE]
+> **Routing**  
 > - **Direct Sound** is routed to **Early Reflections**
 > - **Early Reflections** are routed to **Late Reverb** after all the propagation attenuations (*distance*, *air absorption*, *material absorption* etc.)
 >
