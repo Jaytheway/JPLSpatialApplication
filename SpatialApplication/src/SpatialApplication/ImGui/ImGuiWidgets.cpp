@@ -268,7 +268,7 @@ namespace JPL::ImGuiEx
 		return IconButtonStyle();
 	}*/
 
-	uint32 DrawGEQ(const char* itemId, std::span<float> values, std::span<const float> frequencies, float minValue, float maxValue, const ImVec2& size)
+	uint32 DrawGEQ(const char* itemIdStr, std::span<float> values, std::span<const float> frequencies, float minValue, float maxValue, const ImVec2& size)
 	{
 		if (not JPL_ENSURE(frequencies.size() == values.size() - 1 or frequencies.size() == values.size()))
 		{
@@ -277,7 +277,11 @@ namespace JPL::ImGuiEx
 
 		using namespace ImGuiEx;
 
-		ScopedID geqID(itemId);
+		ScopedID geqID(ImGui::GetID(itemIdStr));
+
+		// Note: Layouts push their own ImGui::ItemAdd, overriding the last item ID with 0,
+		// so we need to wrap all our internal interactions in a group.
+		ScopedGroup group;
 
 		uint32 bModifiedBand = 0;
 
@@ -337,22 +341,34 @@ namespace JPL::ImGuiEx
 						bModifiedBand = b + 1;
 				}
 			});
+			
+			// Make sure to extend layout to prevent out labels from being clipped
+			const ImVec2 lableRowSize(sliderWidth * values.size(), ImGui::GetTextLineHeightWithSpacing());
 
-			LayoutHorizontal("Frequency Labels", [&]
+			LayoutHorizontal("Frequency Labels", ImVec2(0.0f, lableRowSize.y), -1.0f, [&]
 			{
+				auto* drawList = ImGui::GetWindowDrawList();
+				
 				ImVec2 cursor = ImGui::GetCursorScreenPos();
+				char buffer[32]{};
 
 				if (frequencies.size() == values.size())
 				{
 					// Draw band center frequencies
 					const float halfSliderWidth = sliderWidth * 0.5f;
-					ImGui::SetCursorScreenPos((cursor += ImVec2(halfSliderWidth, 0.0f)));
+					
+					cursor.x += halfSliderWidth;
 					
 					for (float freq : frequencies)
 					{
-						ShiftCursorX(-getFreqStrWidth(freq) * 0.5f);
-						ImGui::Text("%.0f", freq);
-						ImGui::SetCursorScreenPos((cursor += ImVec2(sliderWidth, 0.0f)));
+						getFrequencyStr(buffer, 64, freq);
+
+						const float stringWidth = ImGui::CalcTextSize(buffer).x;
+						const ImVec2 textPos(cursor.x - stringWidth * 0.5f, cursor.y);
+
+						drawList->AddText(textPos, ImGui::GetColorU32(ImGuiCol_Text), buffer);
+						
+						cursor.x += sliderWidth;
 					}
 				}
 				else
@@ -360,9 +376,14 @@ namespace JPL::ImGuiEx
 					// Draw split frequencies
 					for (float freq : frequencies)
 					{
-						ImGui::SetCursorScreenPos((cursor += ImVec2(sliderWidth, 0.0f)));
-						ShiftCursorX(-getFreqStrWidth(freq) * 0.5f);
-						ImGui::Text("%.0f", freq);
+						cursor.x += sliderWidth;
+
+						getFrequencyStr(buffer, 64, freq);
+
+						const float stringWidth = ImGui::CalcTextSize(buffer).x;
+						const ImVec2 textPos(cursor.x - stringWidth * 0.5f, cursor.y);
+
+						drawList->AddText(textPos, ImGui::GetColorU32(ImGuiCol_Text), buffer);
 					}
 				}
 			});
