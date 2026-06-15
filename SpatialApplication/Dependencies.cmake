@@ -24,6 +24,12 @@ function(fetch_JPLSpatial)
     if (NOT TARGET JPLSpatial)
         set(JPL_SPATIAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/JPLSpatial")
         add_subdirectory("${JPL_SPATIAL_DIR}" "${CMAKE_BINARY_DIR}/JPLSpatial")  
+
+        get_target_property(LIB_SOURCES JPLSpatial SOURCES)
+        
+        # Remove ErrorReporting.cpp
+        list(REMOVE_ITEM LIB_SOURCES "${JPL_SPATIAL_DIR}/Spatialization/src/Spatialization/ErrorReporting.cpp")
+        set_target_properties(JPLSpatial PROPERTIES SOURCES "${LIB_SOURCES}")
     endif()
 endfunction()
 
