@@ -59,4 +59,5 @@ namespace JPL::GUI
 	ImFont* GetBoldFont();
 	ImFont* GetItalicFont();
 	ImFont* GetLightFont();
+	ImFont* GetConsoleFont();
 }

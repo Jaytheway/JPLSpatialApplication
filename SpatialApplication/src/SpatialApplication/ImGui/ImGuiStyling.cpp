@@ -38,6 +38,7 @@ namespace JPL::GUI
 		#include "fonts/IBMPLexSans-Medium.embed"
 		#include "fonts/IBMPLexSans-MediumItalic.embed"
 		#include "fonts/IBMPLexSans-Bold.embed"
+		#include "fonts/CascadiaCode-SemiBold.embed"
 	} // namespace Embedded
 
 	std::unordered_map<std::string_view, ImFont*> gFonts;
@@ -60,6 +61,8 @@ namespace JPL::GUI
 		GUI::gFonts["Bold"] = fontAtlas->AddFontFromMemoryTTF((void*)Embedded::IBMPlexSansBold_data, Embedded::IBMPlexSansBold_size, fontSizePx, &fontConfig);
 		GUI::gFonts["Italic"] = fontAtlas->AddFontFromMemoryTTF((void*)Embedded::IBMPlexSansMediumItalic_data, Embedded::IBMPlexSansMediumItalic_size, fontSizePx, &fontConfig);
 		GUI::gFonts["Light"] = fontAtlas->AddFontFromMemoryTTF((void*)Embedded::IBMPlexSansLight_data, Embedded::IBMPlexSansLight_size, fontSizePx, &fontConfig);
+		GUI::gFonts["Console"] = fontAtlas->AddFontFromMemoryTTF((void*)Embedded::CascadiaCodeSemiBold_data, Embedded::CascadiaCodeSemiBold_size, fontSizePx, &fontConfig);
+
 		io.FontDefault = baseFont;
 
 		// Merge icons to all existing fonts
@@ -192,8 +195,14 @@ namespace JPL::GUI
 	{
 		return gFonts["Italic"];
 	}
+
 	ImFont* GetLightFont()
 	{
 		return gFonts["Light"];
+	}
+
+	ImFont* GetConsoleFont()
+	{
+		return gFonts["Console"];
 	}
 } // namespace JPL::GUI
