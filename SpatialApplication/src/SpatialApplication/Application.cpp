@@ -17,6 +17,8 @@
 //   WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 //   CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+#include "Application.h"
+
 #include "ImGui/ImGui.h"
 #include "Config.h"
 
@@ -30,6 +32,8 @@
 
 #include "GUI/DirectoryDisplay.h"
 #include "GUI/VBAPVisualization.h"
+#include "GUI/PerformanceGUI.h"
+#include "GUI/ConsoleLogGUI.h"
 
 #include "Model/VBAPVisualizationModel.h"
 #include "Model/DirectSoundModel.h"
@@ -38,12 +42,15 @@
 #include "Layers/AudioPlaybackLayer.h"
 #include "Layers/RoomLayer.h"
 
+#include "Utility/PerformanceMetering.h"
 #include "Systems/EventsLoop.h"
+
 #include <implot.h>
 
+#include <cassert>
 #include <filesystem>
 #include <memory>
-#include <cassert>
+#include <string>
 #include <unordered_map>
 
 namespace JPL
@@ -69,16 +76,21 @@ namespace JPL
 			mAudioPlaybackLayer = std::make_shared<AudioPlaybackLayer>(mDirectSoundModel, mLateReverbModel);
 			mRoomLayer = std::make_shared<RoomLayer>(mDirectSoundModel, mLateReverbModel);
 
-			mAudioPlaybackLayer->SetVBAPModel(mVBAPVis.VBAPModel);
+			mAudioPlaybackLayer->SetVBAPModel(mVBAPVis->VBAPModel);
 
 			mAudioPlaybackLayer->AddListener(this);
 			mRoomLayer->AddListener(this);
 
 			mRoomLayer->GetModel().EnableDirect.AddChangeCallback<&AudioPlaybackLayer::SetEnableDirectSound>(mAudioPlaybackLayer.get());
-			mVBAPVis.ConnectToAudioPlayer.AddChangeCallback<&JPLSpatialApplicationLayer::ConnectVBAPVisToAudioPlayer>(this);
+			mVBAPVis->ConnectToAudioPlayer.AddChangeCallback<&JPLSpatialApplicationLayer::ConnectVBAPVisToAudioPlayer>(this);
 
-			mVBAPVis.VBAPModel->SourceSize.AddChangeCallback<&RoomLayer::SetSourceSize>(mRoomLayer.get());
-			mRoomLayer->SetSourceSize(mVBAPVis.VBAPModel->SourceSize.Get());
+			mVBAPVis->VBAPModel->SourceSize.AddChangeCallback<&RoomLayer::SetSourceSize>(mRoomLayer.get());
+			mRoomLayer->SetSourceSize(mVBAPVis->VBAPModel->SourceSize.Get());
+		}
+
+		~JPLSpatialApplicationLayer()
+		{
+			JPL::Log::Uninit();
 		}
 
 		virtual void OnAttach() override
@@ -118,6 +130,29 @@ namespace JPL
 			{
 				mVBAPVisView.Draw();
 			}, nullptr, { .Flags = ImGuiWindowFlags_NoCollapse });
+
+#if 0
+			ImGuiEx::Window("Perf.", [&]
+			{
+				//const uint32_t sampleFrequencyMs =
+				//	static_cast<uint32_t>(GetMAEngine().GetProcessingSizeInFrames() / mSampleRate * 1000.0f);
+				//PerformanceMeterGUI<PerfMeterAudioCallback>::Draw(sampleFrequencyMs);
+
+				PerformanceMeterGUI<PerfMeterUpdateTaps>::Draw(0);
+
+				PerformanceMeterGUI<PerfMeterRayTracing>::Draw(0);
+			});
+#endif
+
+			// TODO: temporarily placing global shortcuts here
+			// Note: _RouteGlobal won't hijack active text input widgets
+			if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal))
+				JPLSpatialApplication::Undo();
+
+			if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal))
+				JPLSpatialApplication::Redo();
+
+			mLogGUI.Draw();
 		}
 
 		void PushLayers(Walnut::Application& app)
@@ -132,9 +167,9 @@ namespace JPL
 
 			mSourceChannelSet = JPL::ChannelMap::FromNumChannels(newSound.GetNumOutputChannels(0));
 
-			if (mVBAPVis.ConnectToAudioPlayer.Get())
+			if (mVBAPVis->ConnectToAudioPlayer.Get())
 			{
-				mVBAPVis.SourceChannelMap.Set(JPL::NamedChannelMask(mSourceChannelSet.GetChannelMask()));
+				mVBAPVis->SourceChannelMap.Set(JPL::NamedChannelMask(mSourceChannelSet.GetChannelMask()));
 			}
 		}
 
@@ -147,7 +182,7 @@ namespace JPL
 		// RoomLayer listener
 		virtual void OnSourceChanged(const JPL::MinimalVec3& newPosition) override
 		{
-			mVBAPVis.VBAPModel->SourcePosition.Set(newPosition);
+			mVBAPVis->VBAPModel->SourcePosition.Set(newPosition);
 		}
 
 		// RoomLayer listener
@@ -205,8 +240,8 @@ namespace JPL
 				//! However for the sake of the example application, it's fine, most of the users would be on stereo systems.
 				const JPL::ChannelMap outputChannelSet = JPL::ChannelMap::FromNumChannels(JPL::GetMiniaudioEngine(nullptr).GetEndpointBus().GetNumChannels());
 
-				mVBAPVis.TargetChannelMap.Set(JPL::NamedChannelMask(outputChannelSet.GetChannelMask()));
-				mVBAPVis.SourceChannelMap.Set(JPL::NamedChannelMask(mSourceChannelSet.IsValid() ? mSourceChannelSet.GetChannelMask() : JPL::ChannelMask::Stereo));
+				mVBAPVis->TargetChannelMap.Set(JPL::NamedChannelMask(outputChannelSet.GetChannelMask()));
+				mVBAPVis->SourceChannelMap.Set(JPL::NamedChannelMask(mSourceChannelSet.IsValid() ? mSourceChannelSet.GetChannelMask() : JPL::ChannelMask::Stereo));
 			}
 		}
 
@@ -220,10 +255,12 @@ namespace JPL
 		std::shared_ptr<AudioPlaybackLayer> mAudioPlaybackLayer;
 		std::shared_ptr<RoomLayer> mRoomLayer;
 
-		VBAPVisualizationModel mVBAPVis;
+		std::shared_ptr<VBAPVisualizationModel> mVBAPVis{ std::make_shared<VBAPVisualizationModel>() };
 		VBAPVisualization mVBAPVisView{ mVBAPVis };
 
 		static inline std::shared_ptr<Walnut::Image> sLogoImage{};
+
+		GUI::ConsoleLogGUI mLogGUI;
 	};
 
 /* TODO:
@@ -231,8 +268,55 @@ namespace JPL
 */
 } // namespace JPL
 
+
+static void JPLSpatialTrace(const char* msg)
+{
+	JPL::ELogLevel logLevel = JPL::ELogLevel::Trace;
+
+	std::string_view message(msg);
+
+	auto contains = [](std::string_view text, std::string_view string)
+	{
+		return text.find(string) != std::string::npos;
+	};
+
+	if (contains(message, "Info:"))
+		logLevel = JPL::ELogLevel::Info;
+	else if (contains(message, "Error:"))
+		logLevel = JPL::ELogLevel::Error;
+
+	JPL::Log::Print(logLevel, "JPL Spatial: {}", message);
+}
+JPL::TraceFunction JPL::SpatialTrace = JPLSpatialTrace;
+
+#if defined(JPL_ENABLE_ASSERTS) || defined(JPL_ENABLE_ENSURE)
+static bool JPLSpatialAssertionFailedCb(const char* inExpression, const char* inMessage, const std::source_location location)
+{
+	// Print assertion details to the log
+	const auto messageString = std::format(
+		"ASSERT FAILED in file '{}' at line {}\n"
+		"\n"
+		"  Function: {}.\n"
+		"Expression: {}"
+		"{}{}", // message if provided
+		location.file_name(),
+		location.line(),
+		location.function_name(),
+		inExpression,
+		inMessage ? "\n   Message: " : "",
+		inMessage ? inMessage : "");
+
+	JPL::Log::Print(JPL::ELogLevel::Critical, messageString);
+
+	return true; // Trigger breakpoint
+};
+JPL::AssertFailedFunction JPL::AssertFailed = JPLSpatialAssertionFailedCb;
+#endif
+
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 {
+	JPL::Log::Init(); // Initialize logger as soon as possible (unitit in app layer destructor)
+
 	Walnut::ApplicationSpecification spec;
 	spec.Name = "JPL Spatial Application";
 	
