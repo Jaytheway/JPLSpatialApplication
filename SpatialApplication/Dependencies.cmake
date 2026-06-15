@@ -131,6 +131,49 @@ function(fetch_fonts)
     endif()
 endfunction()
 
+function(fetch_concurrentqueue)
+    if (NOT TARGET concurrentqueue)
+        FetchContent_Declare(
+            concurrentqueue
+            URL "https://raw.githubusercontent.com/cameron314/concurrentqueue/refs/heads/master/concurrentqueue.h"
+            DOWNLOAD_NO_EXTRACT TRUE
+        )
+        FetchContent_MakeAvailable(concurrentqueue)
+
+        add_library(concurrentqueue INTERFACE)
+        target_sources(concurrentqueue INTERFACE "${concurrentqueue_SOURCE_DIR}/concurrentqueue.h")
+        target_include_directories(concurrentqueue INTERFACE ${concurrentqueue_SOURCE_DIR})
+        set(concurrentqueue_SOURCES "${concurrentqueue_SOURCE_DIR}/concurrentqueue.h" PARENT_SCOPE)
+    endif()
+endfunction()
+
+function(fetch_magicenum)
+    if (NOT TARGET magic_enum)
+        CPMAddPackage(
+            NAME magic_enum
+            GITHUB_REPOSITORY Neargye/magic_enum
+            GIT_TAG master
+            GIT_SHALLOW TRUE
+            DOWNLOAD_ONLY YES
+        )
+        add_library(magic_enum INTERFACE)
+        set(MAGICENUM_SOURCES
+            "${magic_enum_SOURCE_DIR}/include/magic_enum/magic_enum.hpp"
+            "${magic_enum_SOURCE_DIR}/include/magic_enum/magic_enum_all.hpp"
+            "${magic_enum_SOURCE_DIR}/include/magic_enum/magic_enum_containers.hpp"
+            "${magic_enum_SOURCE_DIR}/include/magic_enum/magic_enum_flags.hpp"
+            "${magic_enum_SOURCE_DIR}/include/magic_enum/magic_enum_format.hpp"
+            "${magic_enum_SOURCE_DIR}/include/magic_enum/magic_enum_fuse.hpp"
+            "${magic_enum_SOURCE_DIR}/include/magic_enum/magic_enum_iostream.hpp"
+            "${magic_enum_SOURCE_DIR}/include/magic_enum/magic_enum_switch.hpp"
+            "${magic_enum_SOURCE_DIR}/include/magic_enum/magic_enum_utility.hpp"
+        )
+        target_sources(magic_enum INTERFACE "${MAGICENUM_SOURCES}")
+        target_include_directories(magic_enum INTERFACE ${magic_enum_SOURCE_DIR}/include)
+        set(magicenum_SOURCES "${MAGICENUM_SOURCES}" PARENT_SCOPE)
+    endif()
+endfunction()
+
 function(jpl_setup_dependencie)
 
     # === ImGui ===
@@ -160,6 +203,14 @@ function(jpl_setup_dependencie)
     # === Fonts ===
     fetch_fonts()
     source_group("vendor\\fonts" FILES ${fonts_SOURCES})
+
+    # === concurrentqueue ===
+    fetch_concurrentqueue()
+    source_group("vendor\\concurrentqueue" FILES ${concurrentqueue_SOURCES})
+
+    # === magic_enum ===
+    fetch_magicenum()
+    source_group("vendor\\magic_enum" FILES ${magicenum_SOURCES})
 
     # Put 3rd-party targets under the "Dependencies" folder in VS
     function(_put_in_folder tgt folder)
@@ -195,6 +246,8 @@ function(jpl_setup_dependencie)
         ImGuiFileDialog
         Fonts
         FFTConvolver
+        concurrentqueue
+        magic_enum
     )
 
     walnut_apply_defines(JPLSpatialApplication)
