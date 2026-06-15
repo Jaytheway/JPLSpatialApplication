@@ -100,7 +100,10 @@ The GUI is drawn using [Dear ImGui](https://github.com/ocornut/imgui) library wi
 The project is distributed under the [ISC license](LICENSE).
 
 ### Third-Party Assets
-- **JPL Spatial Application** uses [IBM Plex Sans](https://fonts.google.com/specimen/IBM+Plex+Sans) font licensed under the [SIL Open Font License 1.1](licenses/OFL.txt).
+**JPL Spatial Application** uses the following fonts:
+- [IBM Plex Sans](https://fonts.google.com/specimen/IBM+Plex+Sans) licensed under the [SIL Open Font License 1.1](licenses/OFL.txt).
   Copyright (c) 2017 IBM Corp. with Reserved Font Name "IBM Plex".
+- [Cascadia Code](https://github.com/microsoft/cascadia-code) licensed under the [SIL Open Font License 1.1](licenses/OFL.txt). Copyright (c) 2019 - Present, Microsoft Corporation,
+with Reserved Font Name Cascadia Code.
 - A few icons are used from [Font Awesome (free)](https://github.com/FortAwesome/Font-Awesome) under the [SIL Open Font License 1.1](licenses/OFL.txt).
   
