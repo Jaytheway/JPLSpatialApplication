@@ -127,6 +127,11 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86|i[3-6]86)$")
   endif()
 endif()
 
+if (MSVC)
+    target_compile_options(JPLSpatialApplication PRIVATE "$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+    target_compile_options(JPLSpatialApplication PRIVATE "$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+endif()
+
 # Set output directories
 jpl_set_output_dirs(JPLSpatialApplication)
 
