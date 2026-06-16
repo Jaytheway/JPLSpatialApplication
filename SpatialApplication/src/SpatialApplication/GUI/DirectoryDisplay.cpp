@@ -56,7 +56,7 @@ namespace JPL
 
 				ImGui::Spring();
 
-				if (ImGui::Button((const char*)ICON_jplsa_FOLDER"  Browse..."))
+				if (ImGuiEx::IconButton(ICON_jplsa_FOLDER"  Browse...", IconStyle::cIconLabelBgHovered))
 				{
 					const int flags = ImGuiFileDialogFlags_DontShowHiddenFiles
 						| ImGuiFileDialogFlags_DisableCreateDirectoryButton

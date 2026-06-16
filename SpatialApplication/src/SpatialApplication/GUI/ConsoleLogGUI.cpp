@@ -134,43 +134,19 @@ namespace JPL::GUI
 			// Text filter widget
 			DrawTextFilterWidget();
 
-			const Colour colourN = Colour(GUI::Colours::Theme::Text).WithMultipliedValue(0.9f);
-			const Colour colourH = colourN;
-			const Colour colourP = colourH.WithMultipliedValue(0.8f);
-			const ImGuiEx::IconButtonStyle iconButtonStyle
-			{
-				.ColourNormal = colourN,
-				.ColourHovered = colourH,
-				.ColourPressed = colourP,
-				.BgColourHovered = IM_COL32(255, 255, 255, 10),
-				.BgColourPressed = IM_COL32(255, 255, 255, 10)
-			};
-
 			// Filters button
-			{
-				if (ImGuiEx::IconButton(ICON_jplsa_SLIDERS" Filters...", iconButtonStyle))
-					ImGui::OpenPopup("Filters");
-			}
+			if (ImGuiEx::IconButton(ICON_jplsa_SLIDERS"  Filters...", IconStyle::cIconLabelBgHovered))
+				ImGui::OpenPopup("Filters");
 
 			ImGui::Spring();
 
 			// Clear Log button
-			{
-				// Slightly modified style for "Clear" button that doesn't open a popup
-				auto buttonStyle = iconButtonStyle;
-				buttonStyle.BgColourNormal = IM_COL32(255, 255, 255, 10);
-				buttonStyle.BgColourHovered = IM_COL32(255, 255, 255, 20);
-				buttonStyle.BgColourPressed = buttonStyle.BgColourHovered;
-
-				if (ImGuiEx::IconButton("Clear Log", buttonStyle))
-					ClearLog();
-			}
+			if (ImGuiEx::IconButton("Clear Log", IconStyle::cIconLabelBgAlways))
+				ClearLog();
 
 			// Settings button
-			{
-				if (ImGuiEx::IconButton(ICON_jplsa_GEAR, iconButtonStyle))
-					ImGui::OpenPopup("Settings");
-			}
+			if (ImGuiEx::IconButton(ICON_jplsa_GEAR, IconStyle::cIconLabelBgHovered))
+				ImGui::OpenPopup("Settings");
 		});
 	}
 

@@ -116,7 +116,7 @@ namespace JPL::GUI
 
 			ImGui::SetNextItemAllowOverlap();
 
-			if (ImGuiEx::IconButton(ICON_jplsa_GEAR, style))
+			if (ImGuiEx::IconButton(ICON_jplsa_GEAR, ImGuiEx::IconStyle::cIconLabelBgHovered))
 			{
 				ImGui::OpenPopupEx(popupID, popupFlags);
 			}
