@@ -334,6 +334,8 @@ namespace JPL
 	template<class T>
 	struct Undoable<T, EUndoableType::Value> final
 	{
+		using ValueType = T;
+
 		Undoable(const std::shared_ptr<T>& value)
 			: mSharedValue(value)
 		{}
@@ -369,6 +371,8 @@ namespace JPL
 	template<class T>
 	struct Undoable<T, EUndoableType::Property> final
 	{
+		using ValueType = T;
+
 		Undoable(const std::shared_ptr<Property<T>>& property)
 			: mSharedProperty(property)
 		{}
@@ -404,6 +408,8 @@ namespace JPL
 	template<class T, class Model>
 	struct Undoable<T, EUndoableType::ModelValue, Model> final
 	{
+		using ValueType = T;
+
 		Undoable(const std::shared_ptr<Model>& model, T Model::* valuePtr)
 			: mModel(valuePtr ? model : nullptr)
 			, mValuePtr(model ? valuePtr : nullptr)
@@ -457,6 +463,8 @@ namespace JPL
 	template<class T, class Model>
 	struct Undoable<T, EUndoableType::ModelProperty, Model> final
 	{
+		using ValueType = T;
+
 		Undoable(const std::shared_ptr<Model>& model, Property<T> Model::* propertyPtr)
 			: mModel(propertyPtr ? model : nullptr)
 			, mPropertyPtr(model ? propertyPtr : nullptr)
