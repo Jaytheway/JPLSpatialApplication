@@ -25,6 +25,7 @@
 #include "GUI/Spectrogram/SpectrogramRendering.h"
 
 #include <filesystem>
+#include <memory>
 
 namespace JPL
 {
@@ -44,5 +45,7 @@ namespace JPL
 		AudioPlayer& mAudioPlayer;
 		GUI::AudioFileWaveformDataSource mWaveformDataSource;
 		GUI::AudioPreview mAudioPreview;
+
+		std::shared_ptr<Property<bool>> mLooping;
 	};
 } // namespace JPL

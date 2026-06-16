@@ -22,6 +22,8 @@
 #include "GUI/Waveform/WaveformRendering.h"
 #include "GUI/Spectrogram/SpectrogramRendering.h"
 
+#include <memory>
+
 namespace JPL::GUI
 {
 	enum class EAudioPreviewMode
@@ -48,6 +50,7 @@ namespace JPL::GUI
 		WaveformDataSource& mDataSource;
 		GUI::Waveform mWaveform;
 		GUI::Spectrogram mSpectrogram;
-		EAudioPreviewMode mMode;
+		
+		std::shared_ptr<EAudioPreviewMode> mMode;
 	};
 } // namespace JPL::GUI

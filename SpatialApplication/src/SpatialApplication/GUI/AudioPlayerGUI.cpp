@@ -20,17 +20,31 @@
 #include "AudioPlayerGUI.h"
 
 #include "ImGui/ImGui.h"
+#include "GUI/PropertyWidgets.h"
 
 #include "fonts/FontIcons.h"
 
+#include <JPLSpatial/Core.h>
+#include <JPLSpatial/ErrorReporting.h>
+
 namespace JPL
 {
-
 	AudioPlayerGUI::AudioPlayerGUI(AudioPlayer& audioPlayer)
 		: mAudioPlayer(audioPlayer)
 		, mAudioPreview(mWaveformDataSource)
+		, mLooping(std::make_shared<Property<bool>>(false))
 	{
 		mAudioPlayer.AddListener(this);
+
+		// Note: if Audio Player looping state changed
+		// from the outside, it may brake our undo/redo
+		// looping property here
+		*mLooping = mAudioPlayer.IsLooping();
+	
+		mLooping->AddChangeCallback(this, [](AudioPlayerGUI* self, bool shouldLoop)
+		{
+			self->mAudioPlayer.SetLooping(shouldLoop);
+		});
 	}
 
 	AudioPlayerGUI::~AudioPlayerGUI()
@@ -61,17 +75,17 @@ namespace JPL
 				{
 					ScopedFontSize fontSize(25.0f);
 
-					if (ImGuiEx::IconButton((const char*)ICON_jplsa_PLAY, style))
+					if (ImGuiEx::IconButton(ICON_jplsa_PLAY, style))
 					{
 						mAudioPlayer.Play();
 					}
 
-					if (ImGuiEx::IconButton((const char*)ICON_jplsa_PAUSE, style))
+					if (ImGuiEx::IconButton(ICON_jplsa_PAUSE, style))
 					{
 						mAudioPlayer.Pause();
 					}
 
-					if (ImGuiEx::IconButton((const char*)ICON_jplsa_STOP, style))
+					if (ImGuiEx::IconButton(ICON_jplsa_STOP, style))
 					{
 						mAudioPlayer.Stop();
 					}
@@ -81,17 +95,24 @@ namespace JPL
 
 				// Looping checkbox
 				{
-					ScopedItemOutline outline((const char*)ICON_jplsa_ARROWS_ROTATE, OutlineFlags_NoOutlineInactive, ImColor(60, 60, 60));
+					// Audio player's looping state may have been changed from the outside
+					// at the moment it's not using Undoable property, so we force it to
+					// our Undoable value here
+
+					const bool bAudioPlayerLooping = mAudioPlayer.IsLooping();
+					if (not JPL_ENSURE(bAudioPlayerLooping == mLooping->Get()))
+					{
+
+						mAudioPlayer.SetLooping(mLooping->Get());
+					}
 
 					ShiftCursorY(2.0f);
-					bool bLooping = mAudioPlayer.IsLooping();
-					if (ImGui::Checkbox("##looping", &bLooping))
-					{
-						mAudioPlayer.SetLooping(bLooping);
 
-					}
+					GUI::PropertyCheckbox("##looping", Undoable(mLooping));
+					
 					SetTooltip("Set playback looping");
 					{
+						// Draw loop icon
 						ScopedColour iconColour(ImGuiCol_Text, ImGui::GetColorU32(ImGuiCol_ButtonHovered));
 						ScopedFontSize fontSize(20.0f);
 						ShiftCursor(-6.0f, 0.0f);
@@ -117,7 +138,7 @@ namespace JPL
 
 				}
 
-				// Dilename
+				// Filename
 				{
 					ImGui::Spring();
 					ShiftCursorY(2.0f);

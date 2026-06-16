@@ -24,8 +24,10 @@
 #include <JPLSpatial/Math/MinimalQuat.h>
 
 #include "ImGui/ImGui.h"
+#include "GUI/PropertyWidgets.h"
 
 #include <algorithm>
+#include <span>
 
 namespace JPL
 {
@@ -99,46 +101,48 @@ namespace JPL
         };
     }
 
-    VBAPVisualization::VBAPVisualization(VBAPVisualizationModel& model)
+    VBAPVisualization::VBAPVisualization(const std::shared_ptr<VBAPVisualizationModel>& model)
         : mModel(model)
         , mSourceChannelSet(JPL::ChannelMask::Invalid)
         , mTargetChannelSet(JPL::ChannelMask::Invalid)
     {
-        mModel.TargetChannelMap.AddChangeCallback<&VBAPVisualization::OnTargetChannelsChanged>(this);
-        mModel.SourceChannelMap.AddChangeCallback<&VBAPVisualization::OnSourceChannelsChanged>(this);
+        JPL_ASSERT(mModel);
 
-        JPL_ASSERT(mModel.VBAPModel);
-        mModel.VBAPModel->AddListener(this);
+        mModel->TargetChannelMap.AddChangeCallback<&VBAPVisualization::OnTargetChannelsChanged>(this);
+        mModel->SourceChannelMap.AddChangeCallback<&VBAPVisualization::OnSourceChannelsChanged>(this);
 
-        OnTargetChannelsChanged(mModel.TargetChannelMap.Get());
-        OnSourceChannelsChanged(mModel.SourceChannelMap.Get());
+        JPL_ASSERT(mModel->VBAPModel);
+        mModel->VBAPModel->AddListener(this);
+
+        OnTargetChannelsChanged(mModel->TargetChannelMap.Get());
+        OnSourceChannelsChanged(mModel->SourceChannelMap.Get());
         UpdatePoints();
     }
 
     VBAPVisualization::~VBAPVisualization()
     {
-        mModel.TargetChannelMap.RemoveChangeCallback(this);
-        mModel.SourceChannelMap.RemoveChangeCallback(this);
+        mModel->TargetChannelMap.RemoveChangeCallback(this);
+        mModel->SourceChannelMap.RemoveChangeCallback(this);
 
-        if (mModel.VBAPModel)
+        if (mModel->VBAPModel)
         {
-            mModel.VBAPModel->RemoveListener(this);
+            mModel->VBAPModel->RemoveListener(this);
         }
     }
 
     void VBAPVisualization::SetVBAPModel(std::shared_ptr<JPL::VBAPModel> newVBAPModel)
     {
-        if (mModel.VBAPModel)
+        if (mModel->VBAPModel)
         {
-            mModel.VBAPModel->RemoveListener(this);
+            mModel->VBAPModel->RemoveListener(this);
         }
 
-        mModel.VBAPModel = newVBAPModel;
+        mModel->VBAPModel = newVBAPModel;
 
-        mModel.VBAPModel->AddListener(this);
+        mModel->VBAPModel->AddListener(this);
 
-        OnTargetChannelsChanged(mModel.TargetChannelMap.Get());
-        OnSourceChannelsChanged(mModel.SourceChannelMap.Get());
+        OnTargetChannelsChanged(mModel->TargetChannelMap.Get());
+        OnSourceChannelsChanged(mModel->SourceChannelMap.Get());
         UpdatePoints();
     }
 
@@ -189,41 +193,40 @@ namespace JPL
 
                 const SliderConfig sliderConfig{ .Fmt = "%.2f" };
 
-                Slider("Focus", mModel.VBAPModel->Focus, 0.0f, 1.0f, sliderConfig);
+                GUI::PropertySlider("Focus", Undoable(mModel->VBAPModel, &VBAPModel::Focus), 0.0f, 1.0f, sliderConfig);
 
                 {
                     // If set to calculate spread from source size,
                     // just display the current value computed from the source size
-                    if (mModel.VBAPModel->SpreadFromSourceSize.Get())
+                    if (mModel->VBAPModel->SpreadFromSourceSize.Get())
                     {
-                        const JPL::MinimalVec3 sourcePosition = mModel.VBAPModel->SourcePosition.Get();
+                        const JPL::MinimalVec3 sourcePosition = mModel->VBAPModel->SourcePosition.Get();
+                        
                         float distance;
-                        JPL::MinimalVec3 direction = sourcePosition.SafeNormal(distance, /* fallback direction */ JPL::MinimalVec3(0.0f, 0.0f, -1.0f));
+                        const JPL::MinimalVec3 direction =
+                            sourcePosition.SafeNormal(distance, /* fallback direction */ JPL::MinimalVec3(0.0f, 0.0f, -1.0f));
 
-                        {
-                            ScopedDisable _(true);
+                        ScopedDisable _(true);
 
-                            float spread = JPL::GetSpreadFromSourceSize(mModel.VBAPModel->SourceSize.Get(), distance);
-                            Slider("Spread", spread, 0.0f, 1.0f, sliderConfig);
-                        }
+                        float spread = JPL::GetSpreadFromSourceSize(mModel->VBAPModel->SourceSize.Get(), distance);
+                        Slider("Spread", spread, 0.0f, 1.0f, sliderConfig);
                     }
                     else
                     {
-                        Slider("Spread", mModel.VBAPModel->Spread, 0.0f, 1.0f, sliderConfig);
+                        GUI::PropertySlider("Spread", Undoable(mModel->VBAPModel, &VBAPModel::Spread), 0.0f, 1.0f, sliderConfig);
                     }
                 }
 
                 //! Should the source size be in visualization model or room model?
                 {
-                    //ScopedDisable disableIf(not mModel.VBAPModel->SpreadFromSourceSize.Get());
-
-                    Slider("Source Size", mModel.VBAPModel->SourceSize, 0.1f, 100.0f, SliderConfig{ .Fmt = "%.1f" });
+                    //ScopedDisable disableIf(not mModel->VBAPModel->SpreadFromSourceSize.Get());
+                    GUI::PropertySlider("Source Size", Undoable(mModel->VBAPModel, &VBAPModel::SourceSize), 0.1f, 100.0f, SliderConfig{ .Fmt = "%.1f" });
                 }
 
                 ImGui::Spacing();
                 
-                PropertyCheckbox("Spread From Source Size", mModel.VBAPModel->SpreadFromSourceSize);
-                PropertyCheckbox("Spread From Height", mModel.VBAPModel->HeightSpread);
+                GUI::PropertyCheckbox("Spread From Source Size", Undoable(mModel->VBAPModel, &VBAPModel::SpreadFromSourceSize));
+                GUI::PropertyCheckbox("Spread From Height", Undoable(mModel->VBAPModel, &VBAPModel::HeightSpread));
 
             }); // LayoutVertical
 
@@ -231,64 +234,53 @@ namespace JPL
             {
                 ScopedItemWidth width(200.0f);
 
-                PropertyCheckbox("Source Orientation", mModel.VBAPModel->UseSourceOrientation);
+                GUI::PropertyCheckbox("Source Orientation", Undoable(mModel->VBAPModel, &VBAPModel::UseSourceOrientation));
                 
                 ImGui::Spacing();
 
-                const bool bIsConnectedToAudioPlayer = mModel.ConnectToAudioPlayer.Get();
+                const bool bIsConnectedToAudioPlayer = mModel->ConnectToAudioPlayer.Get();
 
                 {
                     ScopedDisable disable(bIsConnectedToAudioPlayer);
 
-                    int sourcetSet = std::ranges::find(detail::ValidSourceMasks, mModel.SourceChannelMap.Get()) - std::ranges::begin(detail::ValidSourceMasks);
+                    int selectedSet =
+                        std::ranges::find(
+                            detail::ValidSourceMasks,
+                            mModel->SourceChannelMap.Get()) - std::ranges::begin(detail::ValidSourceMasks);
 
-                    auto getOutSetName = [](void*, int index, const char** out_text)
+                    auto getSourceSetNameCb = [](const JPL::NamedChannelMask& channelMask, int /*index*/) -> const char*
                     {
-                        if (index < 0 || index > detail::ValidSourceMasks.size())
-                        {
-                            return false;
-                        }
-                        else
-                        {
-                            *out_text = detail::ValidSourceMasks[index].Name.data();
-                            return true;
-                        }
+                        return channelMask.Name.data();
                     };
 
-                    ScopedItemOutline outline("Source Channel Set", OutlineFlags_NoOutlineInactive, ImColor(60, 60, 60));
-
-                    if (ImGui::Combo("Source Channel Set", &sourcetSet, getOutSetName, nullptr, static_cast<int>(detail::ValidSourceMasks.size())))
-                    {
-                        mModel.SourceChannelMap.Set(detail::ValidSourceMasks[sourcetSet]);
-                    }
+                    GUI::PropertyCombo("Source Channel Set",
+                                       Undoable(mModel, &VBAPVisualizationModel::SourceChannelMap),
+                                       selectedSet,
+                                       std::span(detail::ValidSourceMasks),
+                                       getSourceSetNameCb);
                 }
 
                 {
                     ScopedDisable disable(bIsConnectedToAudioPlayer);
 
-                    int outputSet = std::ranges::find(detail::ValidTrargetMasks, mModel.TargetChannelMap.Get()) - std::ranges::begin(detail::ValidTrargetMasks);
-                    auto getOutSetName = [](void*, int index, const char** out_text)
+                    int selectedOutputSet =
+                        std::ranges::find(
+                            detail::ValidTrargetMasks,
+                            mModel->TargetChannelMap.Get()) - std::ranges::begin(detail::ValidTrargetMasks);
+                    
+                    auto getOutputSetNameCb = [](const JPL::NamedChannelMask& channelMask, int /*index*/) -> const char*
                     {
-                        if (index < 0 || index > detail::ValidTrargetMasks.size())
-                        {
-                            return false;
-                        }
-                        else
-                        {
-                            *out_text = detail::ValidTrargetMasks[index].Name.data();
-                            return true;
-                        }
+                        return channelMask.Name.data();
                     };
 
-                    ScopedItemOutline outline("Output Channel Set", OutlineFlags_NoOutlineInactive, ImColor(60, 60, 60));
-
-                    if (ImGui::Combo("Output Channel Set", &outputSet, getOutSetName, nullptr, static_cast<int>(detail::ValidTrargetMasks.size())))
-                    {
-                        mModel.TargetChannelMap.Set(detail::ValidTrargetMasks[outputSet]);
-                    }
+                    GUI::PropertyCombo("Output Channel Set",
+                                       Undoable(mModel, &VBAPVisualizationModel::TargetChannelMap),
+                                       selectedOutputSet,
+                                       std::span(detail::ValidTrargetMasks),
+                                       getOutputSetNameCb);
                 }
 
-                PropertyCheckbox("Connect to Audio Player", mModel.ConnectToAudioPlayer);
+                GUI::PropertyCheckbox("Connect to Audio Player", Undoable(mModel, &VBAPVisualizationModel::ConnectToAudioPlayer));
 
                 SetTooltip("If enebaled, visualization is drawn for the Source & Output sets\n"
                            "currently used by the Audio Player.\n"
@@ -296,10 +288,8 @@ namespace JPL
                            "Disabling is meant for checking out visualization for the channel\n"
                            "layouts not available on the user system.");
 
-                {
-                    ScopedItemOutline outline("Show Speakers");
-                    ImGui::Checkbox("Show Speakers", &bDrawSpeakers);
-                }
+                // TODO: do we want undo/redo for this?
+                ImGuiEx::Checkbox("Show Speakers", bDrawSpeakers);
             });
         });
 
@@ -550,7 +540,7 @@ namespace JPL
 
     void VBAPVisualization::OnChange(JPL::GenericChangeBroadcaster* broadcaster)
     {
-        if (broadcaster == mModel.VBAPModel.get())
+        if (broadcaster == mModel->VBAPModel.get())
         {
             UpdatePoints();
         }
@@ -622,7 +612,7 @@ namespace JPL
         if (mPanner && mSourceLayout)
         {
             JPLPanUpdateData panData;
-            const float distance = mModel.VBAPModel->ComputePanUpdateData(mPanner->GetChannelMap().HasTopChannels(), panData);
+            const float distance = mModel->VBAPModel->ComputePanUpdateData(mPanner->GetChannelMap().HasTopChannels(), panData);
 
             const uint32_t numSourceChannels = mSourceChannelSet.Layout.GetNumChannels() - mSourceChannelSet.Layout.HasLFE();
             const uint32_t numTargetChannels = mPanner->GetNumChannels();
@@ -637,7 +627,7 @@ namespace JPL
                 static_cast<SourcePanningVisualizationCallback*>(collector)->operator()(channelVSs, channelID);
             };
 
-            if (mModel.VBAPModel->UseSourceOrientation.Get())
+            if (mModel->VBAPModel->UseSourceOrientation.Get())
             {
                 const auto orientation = JPL::OrientationData<JPL::MinimalVec3>::IdentityForward();
                 /* const auto orientation = JPL::OrientationData<JPL::MinimalVec3>

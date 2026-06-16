@@ -19,11 +19,17 @@
 
 #include "DirectoryDisplay.h"
 
+#include "Application.h"
 #include "Controller/AudioPlayer.h"
-
 #include "ImGui/ImGui.h"
 
+#include <JPLSpatial/Core.h>
+#include <JPLSpatial/ErrorReporting.h>
+
 #include <ImGuiFileDialog.h>
+
+#include <algorithm>
+#include <system_error>
 
 namespace JPL
 {
@@ -33,8 +39,7 @@ namespace JPL
 
 		Child("##DirectoryDisplay", [&]
 		{
-			ImGui::Spacing();
-			ImGui::Spacing();
+			Layout<Spacer, Spacer>();
 
 			LayoutHorizontal("##directory", [&]
 			{
@@ -85,8 +90,8 @@ namespace JPL
 				ImGui::Dummy({ ImGui::GetStyle().ItemSpacing.x * 0.5f, 0.0f });
 
 			}, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
-			ImGui::Separator();
-			ImGui::Spacing();
+
+			Layout<Separator, Spacer>();
 
 			Child("##FilesList", [&]
 			{
@@ -110,14 +115,29 @@ namespace JPL
 	}
 
 	Directory::Directory(const std::filesystem::path& directoryPath)
+		: mSelectedFile(std::make_shared<Property<std::filesystem::path>>())
 	{
 		SetDirectory(directoryPath);
+
+		mSelectedFile->AddChangeCallback(this, [](Directory* self, const std::filesystem::path& selectedFile)
+		{
+			self->Broadcast<&ChangeListenerType::OnSelectedFilePathChanged>(
+				selectedFile.empty()
+				? selectedFile
+				: self->mPath / selectedFile
+			);
+		});
 	}
 
 	void Directory::SetDirectory(const std::filesystem::path& newDirectory)
 	{
 		if (not std::filesystem::is_directory(newDirectory) || newDirectory == mPath)
 			return;
+
+		// Directory change will be not undoable,
+		// because it triggers selected file change,
+		// which would not be valid to undo unless undoing
+		// the directory change as well.
 
 		mPath = newDirectory;
 		mWatcher = std::make_unique<choc::file::Watcher>(mPath, [this](const choc::file::Watcher::Event& ev)
@@ -128,26 +148,28 @@ namespace JPL
 		ParseDirectory();
 	}
 
-	void Directory::SetSelectedFile(const std::filesystem::path& file)
+	bool Directory::SetSelectedFile(const std::filesystem::path& file)
 	{
-		if (mPath.empty()) [[unlikely]]
-			return;
+		if (mPath.empty() or not JPL_ENSURE(mSelectedFile)) [[unlikely]]
+			return false;
+
+		if (file == mSelectedFile->Get())
+			return false;
 
 		if (file.empty()) [[unlikely]]
 		{
-			mSelectedFile.clear();
+			CommitSelectedFileChange({});
+			return true;
 		}
 		else if (std::find(mFiles.begin(), mFiles.end(), file) != mFiles.end()) [[likely]]
 		{
-			mSelectedFile = file;
+			CommitSelectedFileChange(file);
+			return true;
 		}
 		else [[unlikely]]
 		{
-			return;
+			return false;
 		}
-
-		if (onSelectionChanged)
-			onSelectionChanged(mPath / mSelectedFile);
 	}
 
 	void Directory::ParseDirectory()
@@ -174,10 +196,32 @@ namespace JPL
 
 		if (errorCode)
 		{
-			JPL_ERROR_TAG("Directory", errorCode.message());
+			Log::Error("Directory: {}", errorCode.message());
 		}
 
-		if (std::find(mFiles.begin(), mFiles.end(), mSelectedFile.filename()) == mFiles.end())
-			mSelectedFile.clear();
+		if (not JPL_ENSURE(mSelectedFile))
+			return;
+		
+		const std::filesystem::path oldPath = mSelectedFile->Get();
+
+		if (not oldPath.empty())
+		{
+			// Clear selected file if it's not in the new directory
+			if (std::find(mFiles.begin(), mFiles.end(), oldPath.filename()) == mFiles.end())
+			{
+				// Selected file change is not undoable
+				// when triggered by directory change
+				mSelectedFile->Set({});
+			}
+		}
+	}
+
+	void Directory::CommitSelectedFileChange(const std::filesystem::path& newSelectedFile)
+	{
+		const std::filesystem::path oldPath = mSelectedFile->Get();
+
+		mSelectedFile->Set(newSelectedFile);
+
+		JPLSpatialApplication::GetCommandHistory().PropertyEdited(Undoable(mSelectedFile), OldValue(oldPath), "Selected Source");
 	}
 } // namespace JPL

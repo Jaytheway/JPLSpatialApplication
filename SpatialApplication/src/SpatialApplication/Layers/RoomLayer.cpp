@@ -23,6 +23,7 @@
 
 #include "Utility/PerformanceMetering.h"
 #include "ImGui/ImGui.h"
+#include "GUI/PropertyWidgets.h"
 
 #include <JPLSpatial/AirAbsorption.h>
 #include <JPLSpatial/Auralization/ReverbUtilities.h>
@@ -87,35 +88,52 @@ namespace JPL
 	{
 		JPL_ASSERT(directSoundModel);
 		mRoom.DirectSound = mDirectSoundModel;
+		mRoom->DirectSound = mDirectSoundModel;
+
+		mLinkMaterialEditBands = std::make_shared<bool>(false);
+
+		// Initialize default custom material
+		mCustomMaterialAbsorption =
+			std::make_shared<Property<AbsorptionCoeffs>>(AbsorptionCoeffs(0.5f));
+
+		mCustomMaterialAbsorption->AddChangeCallback(this, [](RoomLayer* self, const AbsorptionCoeffs& newCoeffs)
+		{
+			AcousticMaterial::SetMaterial("< CUSTOM >", newCoeffs);
+
+			// mRoom->SurfaceMaterial holds pointer to AcousticMaterial("< CUSTOM >")
+			self->mRoom->SurfaceMaterial.BroadcastUpdate();
+		});
+		
+		// Set initial value
+		AcousticMaterial::SetMaterial("< CUSTOM >", mCustomMaterialAbsorption->Get());
 	}
 
 	RoomLayer::~RoomLayer() = default;
 
 	void RoomLayer::OnAttach()
 	{
-		mRoom.Listener.AddChangeCallback<&RoomLayer::OnListenerChanged>(this);
-		mRoom.Source.AddChangeCallback<&RoomLayer::OnSourceChanged>(this);
-		mRoom.RoomSize.AddChangeCallback<&RoomLayer::OnRoomSizeChanged>(this);
-		mRoom.SurfaceMaterial.AddChangeCallback<&RoomLayer::OnSurfaceMaterialChanged>(this);
+		mRoom->ListenerPosition.AddChangeCallback<&RoomLayer::OnListenerChanged>(this);
+		mRoom->SourcePosition.AddChangeCallback<&RoomLayer::OnSourceChanged>(this);
+		mRoom->RoomSize.AddChangeCallback<&RoomLayer::OnRoomSizeChanged>(this);
+		mRoom->SurfaceMaterial.AddChangeCallback<&RoomLayer::OnSurfaceMaterialChanged>(this);
 
 		AddChangeListener<&RoomLayer::UpdateTaps>(*this,
-												  mRoom.EnableSpecular,
-												  mRoom.EnableDirect,
-												  mRoom.NumPrimaryRays,
-												  mRoom.MaxOrder);
+												  mRoom->EnableSpecular,
+												  mRoom->EnableDirect,
+												  mRoom->NumPrimaryRays,
+												  mRoom->MaxOrder);
 		mERPanner = std::make_unique <JPLPanner>();
 		mERPanner->Initialize(ChannelMap::FromNumChannels(2));
 
-		JPL_ASSERT(mRoom.SurfaceMaterial.Get() != nullptr);
-		mERTracer.SetSurfaceMaterial(*mRoom.SurfaceMaterial.Get());
-		mERTracer.OnListenerChanged(mRoom.GetListenerAbsPosition());
-		mERTracer.OnSourceChanged(mRoom.GetSourceAbsPosition());
-		mERTracer.OnRoomSizeChanged(mRoom.RoomSize.Get().Size);
-
+		JPL_ASSERT(mRoom->SurfaceMaterial.Get() != nullptr);
+		mERTracer.SetSurfaceMaterial(*mRoom->SurfaceMaterial.Get());
+		mERTracer.OnListenerChanged(mRoom->GetListenerAbsPosition());
+		mERTracer.OnSourceChanged(mRoom->GetSourceAbsPosition());
+		mERTracer.OnRoomSizeChanged(mRoom->RoomSize.Get());
 		UpdateTaps();
 		UpdateReverbTime();
-		Broadcast<&ChangeListenerType::OnRoomSizeChanged>(mRoom.RoomSize.Get().Size);
-		Broadcast<&ChangeListenerType::OnSourceChanged>(mRoom.GetSourceAbsPosition() - mRoom.GetListenerAbsPosition());
+		Broadcast<&ChangeListenerType::OnRoomSizeChanged>(mRoom->RoomSize.Get());
+		Broadcast<&ChangeListenerType::OnSourceChanged>(mRoom->GetSourceAbsPosition() - mRoom->GetListenerAbsPosition());
 	}
 
 	void RoomLayer::OnDetach()
@@ -151,9 +169,9 @@ namespace JPL
 
 				auto drawPropsMaterial = [&]
 				{
-					const AcousticMaterial* selectedMaterial = mRoom.SurfaceMaterial.Get();
+					const AcousticMaterial* selectedMaterial = mRoom->SurfaceMaterial.Get();
 
-					static uint32 selectedMaterialId = selectedMaterial->ID;
+					uint32 selectedMaterialId = selectedMaterial->ID;
 					const AcousticMaterial* customMaterial = AcousticMaterial::Get("< CUSTOM >");
 					JPL_ASSERT(customMaterial);
 
@@ -163,6 +181,7 @@ namespace JPL
 
 						std::string_view currentMaterial = selectedMaterial->Name;
 
+						// TODO: maybe implement GUI::PropertyCombo with item callback
 						if (ImGui::BeginCombo("Surface Material", currentMaterial.data()))
 						{
 							const auto& acousticMaterials = AcousticMaterial::GetListOfMaterials();
@@ -172,8 +191,19 @@ namespace JPL
 								bool bSelected = id == selectedMaterialId;
 								if (ImGui::Selectable(material.Name.data(), &bSelected))
 								{
-									selectedMaterialId = id;
-									mRoom.SurfaceMaterial.Set(&material);
+									// Selectable triggers even when clicked on already selected item
+									if (id != selectedMaterialId)
+									{
+										selectedMaterialId = id;
+
+										mRoom->SurfaceMaterial.Set(&material);
+
+										// Add material change to Undo history
+										JPLSpatialApplication::GetCommandHistory()
+											.PropertyEdited(Undoable(mRoom, &RoomModel::SurfaceMaterial),
+															OldValue(selectedMaterial),
+															"Surface Material");
+									}
 								}
 							}
 							ImGui::EndCombo();
@@ -200,58 +230,68 @@ namespace JPL
 																	 minAbsorption, maxAbsorption,
 																	 ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 2.0f));
 
+						// We need to capture these right after our GEQ,
+						// other widgets may override the flags
+						const bool bActivated = ImGui::IsItemActivated();
+						const bool bDeactivated = ImGui::IsItemDeactivated();
+
 						if (bSelectedCustomMaterial)
 						{
-							static bool bLinked = false;
-							{
-								ScopedItemOutline outline("Link");
-								ImGui::SameLine();
-								ImGui::Checkbox("Link", &bLinked);
-							}
+							ImGui::SameLine();
+							GUI::PropertyCheckbox("Link", Undoable(mLinkMaterialEditBands));
+
+							auto& history = JPLSpatialApplication::GetCommandHistory();
+
+							// Begin property gesture edit before modifying property
+							if (bActivated)
+								history.BeginPropertyEdit(Undoable(mCustomMaterialAbsorption), "Custom Material Absorption");
 
 							if (modifiedBand)
 							{
-								const simd modifiedAbsorption = bLinked
+								const simd modifiedAbsorption = *mLinkMaterialEditBands
 									? simd(absorptionBands[modifiedBand - 1])
 									: simd(absorptionBands);
 
-								AcousticMaterial::SetMaterial("< CUSTOM >", modifiedAbsorption);
-								mRoom.SurfaceMaterial.BroadcastUpdate();
-
+								// This is going to modify AcousticMaterial("< CUSTOM >")
+								mCustomMaterialAbsorption->Set(modifiedAbsorption);
 							}
+
+							// End property edit gesture after modifying property the last time
+							if (bDeactivated)
+								history.EndPropertyEdit(Undoable(mCustomMaterialAbsorption));
 						}
 					}
 				};
 
 				auto drawPropsER = [&]
 				{
-					PropertyCheckbox("Enable Specular Reflections", mRoom.EnableSpecular);
+					GUI::PropertyCheckbox("Enable Specular Reflections", Undoable(mRoom, &RoomModel::EnableSpecular));
 
 					ImGui::Spacing();
 
-					ScopedDisable disable(not mRoom.EnableSpecular.Get());
+					ScopedDisable disable(not mRoom->EnableSpecular.Get());
 					ScopedItemWidth width(210.0f);
 
-					Input("Num Prim. Rays", mRoom.NumPrimaryRays, InputConfig<uint32>{.Step = 1, .StepFast = 100, .Fmt = "%d" });
-					Input("Max Spec. Order", mRoom.MaxOrder, InputConfig<uint32>{.Step = 1, .StepFast = 100, .Fmt = "%d", .Max = uint32(SpecularRayTracing::cMaxOrder) });
+					GUI::PropertyInput("Num Prim. Rays", Undoable(mRoom, &RoomModel::NumPrimaryRays), InputConfig<uint32>{.Step = 1, .StepFast = 100, .Fmt = "%d" });
+					GUI::PropertyInput("Max Spec. Order", Undoable(mRoom, &RoomModel::MaxOrder), InputConfig<uint32>{.Step = 1, .StepFast = 100, .Fmt = "%d", .Max = uint32(SpecularRayTracing::cMaxOrder) });
 				};
 
 				auto drawPropsDirectSound = [&]
 				{
-					PropertyCheckbox("Enable Direct Sound", mRoom.EnableDirect);
+					GUI::PropertyCheckbox("Enable Direct Sound", Undoable(mRoom, &RoomModel::EnableDirect));
 
 					ImGui::Spacing();
 
-					ScopedDisable disable(not mRoom.EnableDirect.Get());
+					ScopedDisable disable(not mRoom->EnableDirect.Get());
 
-					PropertyCheckbox("Air Absorption", mRoom.DirectSound->EnableAirAbsorption); ImGui::SameLine();
-					PropertyCheckbox("Distance Attenuation", mRoom.DirectSound->EnableDistanceAttenuation);
-					PropertyCheckbox("Propagaion Delay", mRoom.DirectSound->EnablePropagationDelay);
+					GUI::PropertyCheckbox("Air Absorption", Undoable(mRoom->DirectSound, &DirectSoundModel::EnableAirAbsorption)); ImGui::SameLine();
+					GUI::PropertyCheckbox("Distance Attenuation", Undoable(mRoom->DirectSound, &DirectSoundModel::EnableDistanceAttenuation));
+					GUI::PropertyCheckbox("Propagaion Delay", Undoable(mRoom->DirectSound, &DirectSoundModel::EnablePropagationDelay));
 				};
 
 				auto drawPropsLateReverb = [&]
 				{
-					// TODO: mixing mode selection
+					// TODO: mixing mode selection (?)
 					mLateReverbGUI.Draw();
 				};
 				
@@ -316,35 +356,35 @@ namespace JPL
 		mRoomView.SetSourceSize(newSize);
 	}
 
-	void RoomLayer::OnListenerChanged(const typename RoomModel::ListenerData& /*listener*/)
+	void RoomLayer::OnListenerChanged(const MinimalVec3& /*listenerPosition*/)
 	{
-		mERTracer.OnListenerChanged(mRoom.GetListenerAbsPosition());
+		mERTracer.OnListenerChanged(mRoom->GetListenerAbsPosition());
 		UpdateTaps();
 		UpdateReverbTime();
 
-		const auto sourcePosition = (mRoom.GetSourceAbsPosition() - mRoom.GetListenerAbsPosition());
+		const auto sourcePosition = (mRoom->GetSourceAbsPosition() - mRoom->GetListenerAbsPosition());
 		Broadcast<&ChangeListenerType::OnSourceChanged>(sourcePosition);
 	}
 
-	void RoomLayer::OnSourceChanged(const typename RoomModel::SourceData& /*source*/)
+	void RoomLayer::OnSourceChanged(const MinimalVec3& /*sourcePosition*/)
 	{
-		mERTracer.OnSourceChanged(mRoom.GetSourceAbsPosition());
+		mERTracer.OnSourceChanged(mRoom->GetSourceAbsPosition());
 		UpdateTaps();
 		UpdateReverbTime();
 
-		const auto sourcePosition = (mRoom.GetSourceAbsPosition() - mRoom.GetListenerAbsPosition());
+		const auto sourcePosition = (mRoom->GetSourceAbsPosition() - mRoom->GetListenerAbsPosition());
 		Broadcast<&ChangeListenerType::OnSourceChanged>(sourcePosition);
 	}
 
-	void RoomLayer::OnRoomSizeChanged(const typename RoomModel::RoomSizeData& room)
+	void RoomLayer::OnRoomSizeChanged(const MinimalVec3& roomSize)
 	{
-		mERTracer.OnListenerChanged(mRoom.GetListenerAbsPosition());
-		mERTracer.OnSourceChanged(mRoom.GetSourceAbsPosition());
-		mERTracer.OnRoomSizeChanged(room.Size);
+		mERTracer.OnListenerChanged(mRoom->GetListenerAbsPosition());
+		mERTracer.OnSourceChanged(mRoom->GetSourceAbsPosition());
+		mERTracer.OnRoomSizeChanged(roomSize);
 		UpdateTaps();
 		UpdateReverbTime();
 
-		Broadcast<&ChangeListenerType::OnRoomSizeChanged>(room.Size);
+		Broadcast<&ChangeListenerType::OnRoomSizeChanged>(roomSize);
 	}
 
 	void RoomLayer::OnSurfaceMaterialChanged(const JPL::AcousticMaterial* newMaterial)
@@ -362,16 +402,16 @@ namespace JPL
 		{
 			auto timer = PerfMeterRayTracing::MakeScopedTimer();
 			mERTracer.ClearCache();
-			mERTracer.Trace(mRoom.NumPrimaryRays.Get(), mRoom.MaxOrder.Get());
+			mERTracer.Trace(mRoom->NumPrimaryRays.Get(), mRoom->MaxOrder.Get());
 		}
 
 		const uint32_t numChannels = mERPanner->GetNumChannels();
 
-		if (mRoom.EnableSpecular.Get())
+		if (mRoom->EnableSpecular.Get())
 		{
 			const auto& cache = mERTracer.GetCache();
 
-			const auto listenerPosition = mRoom.GetListenerAbsPosition();
+			const auto listenerPosition = mRoom->GetListenerAbsPosition();
 
 			for (auto&& [pathId, path] : cache.GetValidPaths())
 			{
@@ -409,10 +449,10 @@ namespace JPL
 	{
 
 		// Estimate reverberation time using Eyring equation
-		const AcousticMaterial* surfaceMaterial = mRoom.SurfaceMaterial.Get();
+		const AcousticMaterial* surfaceMaterial = mRoom->SurfaceMaterial.Get();
 		if (JPL_ENSURE(surfaceMaterial))
 		{
-			const MinimalVec3 roomSize = mRoom.RoomSize.Get().Size;
+			const MinimalVec3 roomSize = mRoom->RoomSize.Get();
 
 			mRT60 = EstimateRT60_Eyring(roomSize.X, roomSize.Z, roomSize.Y,
 										surfaceMaterial->Coeffs,

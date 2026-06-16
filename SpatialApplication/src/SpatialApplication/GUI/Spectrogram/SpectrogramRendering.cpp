@@ -19,7 +19,9 @@
 
 #include "SpectrogramRendering.h"
 
+#include "Application.h"
 #include "ImGui/ImGui.h"
+#include "GUI/PropertyWidgets.h"
 #include "Systems/EventsLoop.h"
 
 #include <JPLSpatial/Math/Math.h>
@@ -93,11 +95,13 @@ namespace JPL::GUI
 	//==========================================================================
 	Spectrogram::Spectrogram(WaveformDataSource& waveformDataSorce)
 		: mDataSource(waveformDataSorce)
+		, mParams(std::make_shared<SpectrogramParams>())
 		, mMemoryResource(std::pmr::get_default_resource())
 		, mChannelData(&mMemoryResource)
 		, mChannelAtlases(&mMemoryResource)
 	{
 		mDataSource.AddListener(this);
+		mParams->AddListener(this);
 
 		mSpectrogramUpdateRoutine = SpectrogramUpdateRoutine();
 		mSpectrogramUpdateRoutine.Resume(); // start the routine
@@ -106,6 +110,15 @@ namespace JPL::GUI
 	Spectrogram::~Spectrogram() noexcept
 	{
 		mDataSource.RemoveListener(this);
+	}
+
+	void Spectrogram::OnChange(GenericChangeBroadcaster* broadcaster)
+	{
+		if (broadcaster == &(*mParams))
+		{
+			mUpdateState = EUpdateState::UpdatingProperties;
+			mSpectrogramNeedsUpdate.Set();
+		}
 	}
 	
 	void Spectrogram::OnSourceChanged()
@@ -313,19 +326,27 @@ namespace JPL::GUI
 		bool bParamsChanged = false;
 
 		static std::string buffer; buffer.clear();
-		std::format_to(std::back_inserter(buffer), "{}", mParams.FFTSize);
+		std::format_to(std::back_inserter(buffer), "{}", mParams->FFTSize);
 
 		if (ImGui::BeginCombo("FFT Size", buffer.c_str()))
 		{
 			for (const auto& [label, value] : cFFTSizeEntries)
 			{
-				bool bSelected = mParams.FFTSize == value;
+				bool bSelected = mParams->FFTSize == value;
 
 				if (ImGui::Selectable(label, &bSelected))
 				{
-					if (value != mParams.FFTSize)
+					if (value != mParams->FFTSize)
 					{
-						mParams.FFTSize = value;
+						const std::size_t oldValue = mParams->FFTSize;
+						
+						mParams->FFTSize = value;
+
+						JPLSpatialApplication::GetCommandHistory()
+							.PropertyEdited(Undoable(mParams, &SpectrogramParams::FFTSize),
+											OldValue(oldValue),
+											"FFT Size");
+
 						bParamsChanged = true;
 					}
 
@@ -334,24 +355,34 @@ namespace JPL::GUI
 			ImGui::EndCombo();
 		}
 
-		bParamsChanged |= ImGui::InputFloat("dB Range Offset", &mParams.DisplayDb, 3.0f, 0.0f, "%.0f");
-		
-		if (ImGui::InputFloat("dB Range Min", &mParams.MinDb, 3.0f, 0.0f, "%.0f"))
+		ImGuiEx::InputConfig<float> inputFloatConfig{
+			.Step = 3.0f,
+			.Fmt = "%.0f"
+		};
+
+		if (GUI::PropertyInput("dB Range Offset", Undoable(mParams, &SpectrogramParams::DisplayDb), inputFloatConfig))
 		{
-			mParams.MinDb = std::min(mParams.MinDb, mParams.MaxDb - 6.0f);
+			bParamsChanged = true;
+		}
+		
+		inputFloatConfig.Max = mParams->MaxDb - 6.0f;
+
+		if (GUI::PropertyInput("dB Range Min", Undoable(mParams, &SpectrogramParams::MinDb), inputFloatConfig))
+		{
 			bParamsChanged = true;
 		}
 
-		if (ImGui::InputFloat("dB Range Max", &mParams.MaxDb, 3.0f, 0.0f, "%.0f"))
+		inputFloatConfig.Max = std::nullopt;
+		inputFloatConfig.Min = mParams->MinDb + 6.0f;
+
+		if (GUI::PropertyInput("dB Range Max", Undoable(mParams, &SpectrogramParams::MaxDb), inputFloatConfig))
 		{
-			mParams.MaxDb = std::max(mParams.MaxDb, mParams.MinDb + 6.0f);
 			bParamsChanged = true;
 		}
 
 		if (bParamsChanged)
 		{
-			mUpdateState = EUpdateState::UpdatingProperties;
-			mSpectrogramNeedsUpdate.Set();
+			mParams->BroadcastChange();
 		}
 	}
 
@@ -378,7 +409,7 @@ namespace JPL::GUI
 				: 0;
 
 			// Get the latest parameters
-			mGenerator.Init(mParams);
+			mGenerator.Init(*mParams);
 
 			// Get the latest required width in pixels
 			const uint64 spectrogramWPx = mSpectrogramWidthPx;

@@ -22,6 +22,7 @@
 #include "Coroutine/Coroutine.h"
 #include "GUI/Spectrogram/SpectrogramGenerator.h"
 #include "GUI/Waveform/WaveformDataSource.h"
+#include "Utility/MVCUtils.h"
 
 #include <JPLSpatial/Core.h>
 #include <JPLSpatial/ErrorReporting.h>
@@ -42,7 +43,8 @@ namespace JPL::GUI
 {
 	//==========================================================================
 	/// Provides spectrogram drawing routine
-	class Spectrogram : ChangeListener<SampleData>
+	class Spectrogram	: ChangeListener<SampleData>
+						, public GenericChangeListener
 	{
 	public:
 		struct ImageChunk
@@ -79,6 +81,10 @@ namespace JPL::GUI
 		bool Draw(const char* itemId);
 		void DrawProperties();
 
+		// ~ Begin GenericChangeListener interface
+		void OnChange(GenericChangeBroadcaster* broadcaster) override;
+		// ~ End GenericChangeListener interface
+
 	private:
 		Coro::Task<> SpectrogramUpdateRoutine();
 
@@ -111,7 +117,7 @@ namespace JPL::GUI
 		int mSpectrogramHeightPx = 0;
 
 		SpectrogramGenerator mGenerator;
-		SpectrogramParams mParams; // TODO: properties
+		std::shared_ptr<SpectrogramParams> mParams;
 
 		using ChannelAtlas = std::pmr::vector<std::shared_ptr<Walnut::Image>>;
 		std::pmr::vector<ChannelAtlas> mChannelAtlases;

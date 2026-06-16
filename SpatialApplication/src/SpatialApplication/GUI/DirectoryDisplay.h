@@ -19,16 +19,30 @@
 
 #pragma once
 
+#include "Utility/MVCUtils.h"
+
 #include "platform/choc_FileWatcher.h"
 
-#include <algorithm>
 #include <functional>
 #include <filesystem>
-#include <system_error>
+#include <memory>
+#include <vector>
 
 namespace JPL
 {
-	struct Directory
+	struct DirectoryDisplay;
+	struct Directory;
+
+	template<>
+	class ChangeListener<Directory>
+	{
+	public:
+		virtual ~ChangeListener() noexcept = default;
+
+		virtual void OnSelectedFilePathChanged(const std::filesystem::path& newFilePath) const = 0;
+	};
+
+	struct Directory : public ChangeBroadcaster<Directory>
 	{
 	public:
 		explicit Directory(const std::filesystem::path& directoryPath);
@@ -36,24 +50,25 @@ namespace JPL
 		const std::filesystem::path& GetPath() const { return mPath; }
 
 		const std::vector<std::filesystem::path>& GetFiles() const { return mFiles; }
-		const std::filesystem::path& GetSelectedFile() const { return mSelectedFile; }
-		const std::filesystem::path& GetSelectedFileAbs() const { return mPath / mSelectedFile; }
+		const std::filesystem::path& GetSelectedFile() const { return mSelectedFile->Get(); }
+		const std::filesystem::path& GetSelectedFileAbs() const { return mPath / mSelectedFile->Get(); }
 
 		void SetDirectory(const std::filesystem::path& newDirectory);
-		void SetSelectedFile(const std::filesystem::path& file);
-
-		std::function<void(const std::filesystem::path& newFileAbsolutePath)> onSelectionChanged = nullptr;
+		bool SetSelectedFile(const std::filesystem::path& file);
 
 	private:
 		inline void OnChange(const choc::file::Watcher::Event& event) { ParseDirectory(); }
 		void ParseDirectory();
 
+		void CommitSelectedFileChange(const std::filesystem::path& newSelectedFile);
+
 	private:
-		std::filesystem::path mPath;
+		std::shared_ptr<Property<std::filesystem::path>> mSelectedFile;
+
+		std::filesystem::path mPath; // directory path
 		std::unique_ptr<choc::file::Watcher> mWatcher = nullptr;
 
 		std::vector<std::filesystem::path> mFiles;
-		std::filesystem::path mSelectedFile;
 	};
 
 	struct DirectoryDisplay

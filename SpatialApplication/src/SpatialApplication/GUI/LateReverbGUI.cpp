@@ -17,8 +17,10 @@
 //   WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 //   CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+#include "Application.h"
 #include "GUI/LateReverbGUI.h"
 #include "ImGui/ImGui.h"
+#include "GUI/PropertyWidgets.h"
 #include "Systems/EventsLoop.h"
 
 #include <JPLSpatial/Core.h>
@@ -33,6 +35,9 @@
 #include "Utility/Timer.h"
 #endif
 
+#include <span>
+#include <utility>
+
 namespace JPL
 {
 	//==========================================================================
@@ -41,7 +46,7 @@ namespace JPL
 		, mIRReverb(std::make_shared<ReverbBus>())
 		, mIRAudioPreview(mIRWaveformSource)
 		, bUpdatingWaveform(false)
-		, bShowIRAudioPreview(false)
+		, bShowIRAudioPreview(std::make_shared<bool>(false))
 	{
 		JPL_ASSERT(model);
 
@@ -100,12 +105,10 @@ namespace JPL
 		
 		using namespace JPL::ImGuiEx;
 
-		//Child("Late Reverb Properties", propsPanelConfig, [&]
-		//{
 		LayoutHorizontal("Props Layout", [&]
 		{
-			ImGuiEx::DrawGEQ("RT60",
-							 mModel->T60,
+			GUI::PropertyGEQ("RT60",
+							 Undoable(mModel, &LateReverbModel::T60),
 							 cBandCenters,
 							 LateReverbModel::cMinReverbTime,
 							 LateReverbModel::cMaxReverbTime,
@@ -120,10 +123,10 @@ namespace JPL
 				const float labelSize = 100.0f; // arbitrary number to fit our label
 				ScopedItemWidth width(ImMin(maxWidth, ImGui::GetContentRegionAvail().x - labelSize));
 
-				Slider("ER Level", mModel->DryLevel, 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
-				Slider("Reverb Level", mModel->WetLevel, 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
+				GUI::PropertySlider("ER Level", Undoable(mModel, &LateReverbModel::DryLevel), 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
+				GUI::PropertySlider("Reverb Level", Undoable(mModel, &LateReverbModel::WetLevel), 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
 
-				ImGui::Checkbox("Show IR", &bShowIRAudioPreview);
+				GUI::PropertyCheckbox("Show IR", Undoable(bShowIRAudioPreview));
 			});
 		});
 	}
@@ -132,7 +135,7 @@ namespace JPL
 	{
 		using namespace JPL::ImGuiEx;
 
-		if (bShowIRAudioPreview)
+		if (*bShowIRAudioPreview)
 		{
 			const ImVec2 windowPaddingBckp = ImGui::GetStyle().WindowPadding;
 
@@ -147,13 +150,24 @@ namespace JPL
 				.Flags = ImGuiWindowFlags_NoCollapse
 			};
 
+			bool bShowIRPreviewToggle = *bShowIRAudioPreview;
+
 			Window("Reverb IR Preview", config, [&]
 			{
 				// Restore padding for any pupups created by the Audio Preview
 				ScopedStyle restorePadding(ImGuiStyleVar_WindowPadding, windowPaddingBckp);
 
 				mIRAudioPreview.Draw("IR Audio Preview");
-			}, &bShowIRAudioPreview);
+			}, &bShowIRPreviewToggle);
+
+			// Since window can be closed from ImGui,
+			// we need to manually check and add the chagne to the undo history
+			if (*bShowIRAudioPreview != bShowIRPreviewToggle)
+			{
+				std::swap(*bShowIRAudioPreview, bShowIRPreviewToggle);
+				JPLSpatialApplication::GetCommandHistory()
+					.PropertyEdited(Undoable(bShowIRAudioPreview), OldValue(bShowIRPreviewToggle), "Show IR");
+			}
 		}
 	}
 

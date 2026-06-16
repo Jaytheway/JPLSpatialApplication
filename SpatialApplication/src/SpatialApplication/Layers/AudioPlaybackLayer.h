@@ -64,6 +64,7 @@ namespace JPL
 	class AudioPlaybackLayer : public Walnut::Layer
 							, public ChangeBroadcaster<AudioPlaybackLayer>
 							, public ChangeListener<AudioPlayer>
+							, public ChangeListener<Directory>
 							, public GenericChangeListener
 	{
 	public:
@@ -78,6 +79,10 @@ namespace JPL
 		virtual void OnUpdate(float ts) override;
 		virtual void OnUIRender() override;
 		// ~ End Walnut::Layer interface
+
+		// ~ Begin ChangeListner<Directory> interface
+		void OnSelectedFilePathChanged(const std::filesystem::path& newFilePath) const override;
+		// ~ End ChangeListner<Directory> interface
 
 		void SetTaps(std::span<const typename JPL::ERBus::ERUpdateData> newTaps);
 

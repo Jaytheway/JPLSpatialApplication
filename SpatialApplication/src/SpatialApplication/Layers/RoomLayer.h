@@ -69,21 +69,24 @@ namespace JPL
 
 		void SetNumChannelsForERs(uint32_t numChannels);
 
-		RoomModel& GetModel() { return mRoom; }
+		RoomModel& GetModel() { return *mRoom; }
 		void SetSourceSize(float newSize);
 
 		const simd& GetReverbTime() const { return mRT60; }
 
 	private:
-		void OnListenerChanged(const typename RoomModel::ListenerData& listener);
-		void OnSourceChanged(const typename RoomModel::SourceData& source);
-		void OnRoomSizeChanged(const typename RoomModel::RoomSizeData& room);
+		void OnListenerChanged(const MinimalVec3& listenerPosition);
+		void OnSourceChanged(const MinimalVec3& listenerPosition);
+		void OnRoomSizeChanged(const MinimalVec3& roomSize);
 		void OnSurfaceMaterialChanged(const JPL::AcousticMaterial* newMaterial);
 		void UpdateTaps();
 		void UpdateReverbTime();
 	private:
-		RoomModel mRoom;
+		std::shared_ptr<RoomModel> mRoom{ std::make_shared<RoomModel>() };
 		RoomView mRoomView{ mRoom };
+
+		std::shared_ptr<Property<AbsorptionCoeffs>> mCustomMaterialAbsorption;
+		std::shared_ptr<bool> mLinkMaterialEditBands;
 
 		std::shared_ptr<DirectSoundModel> mDirectSoundModel;
 		std::shared_ptr<LateReverbModel> mLateReverbModel;

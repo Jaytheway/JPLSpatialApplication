@@ -74,7 +74,7 @@ namespace JPL
 	class VBAPVisualization : public JPL::GenericChangeListener
 	{
 	public:
-		explicit VBAPVisualization(VBAPVisualizationModel& model);
+		explicit VBAPVisualization(const std::shared_ptr<VBAPVisualizationModel>& model);
 		~VBAPVisualization();
 
 		void Draw();
@@ -97,7 +97,7 @@ namespace JPL
 		void SetVBAPModel(std::shared_ptr<JPL::VBAPModel> newVBAPModel);
 
 	private:
-		VBAPVisualizationModel& mModel;
+		std::shared_ptr<VBAPVisualizationModel> mModel;
 
 		std::unique_ptr<JPLPanner> mPanner;
 		JPLSourceLayoutHandle mSourceLayout;

@@ -148,11 +148,13 @@ namespace JPL
 			UpdateProcessingChain(sound);
 		};
 
-		mDirectory.onSelectionChanged = [this](const std::filesystem::path& filepath)
-		{
-			if (mPlayer)
-				mPlayer->SetFile(filepath);
-		};
+		mDirectory.AddListener(this);
+	}
+
+	void AudioPlaybackLayer::OnSelectedFilePathChanged(const std::filesystem::path& newFilePath) const
+	{
+		if (mPlayer)
+			mPlayer->SetFile(newFilePath);
 	}
 
 	void AudioPlaybackLayer::OnDetach()
@@ -166,6 +168,8 @@ namespace JPL
 
 		mPlayer = nullptr;
 		mPanner = nullptr;
+
+		mDirectory.RemoveListener(this);
 	}
 
 	void AudioPlaybackLayer::OnUpdate(float ts)

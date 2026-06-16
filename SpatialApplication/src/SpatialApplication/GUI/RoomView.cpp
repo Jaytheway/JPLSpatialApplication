@@ -24,6 +24,7 @@
 #include <JPLSpatial/AcousticMaterial.h>
 
 #include "ImGui/ImGui.h"
+#include "GUI/PropertyWidgets.h"
 
 #include <Walnut/ImGui/ImGuiTheme.h> // colour utils (TODO: move to our ImGui utils)
 
@@ -43,10 +44,10 @@ namespace JPL
         return position * bounds.GetSize() + bounds.Min;
     }
 
-    RoomView::RoomView(RoomModel& model)
+    RoomView::RoomView(const std::shared_ptr<RoomModel>& model)
         : mModel(model)
     {
-        AcousticMaterial::SetMaterial("< CUSTOM >", simd(0.5f));
+        JPL_ASSERT(mModel);
     }
 
     void RoomView::OnStart()
@@ -56,9 +57,6 @@ namespace JPL
     void RoomView::DrawProperties()
     {
         using namespace ImGuiEx;
-
-        bool bRoomSizeChanged = false;
-        MinimalVec3 roomSize = mModel.RoomSize.Get().Size;
 
         const ImVec2 availableSize = ImGui::GetContentRegionAvail();
         const auto autoResizeXY = ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX;
@@ -73,73 +71,50 @@ namespace JPL
                 ImGui::TextDisabled("       X                   Y                   Z");
                 ImGui::Spring();
 
+                const InputVec3Config roomSizePropconfig
                 {
-                    // ImGui multi-input widgets push id of the field index,
-                    // so we need to detect component id for our outline logic
-                    ScopedItemOutline outline("Room Size", { 0, 1, 2 });
-
-                    auto roomSizeEdit = roomSize;
-                    ImGui::InputFloat3("Room Size", &roomSizeEdit.X, "%.1f");
-                    if (ImGui::IsItemDeactivatedAfterEdit())
-                    {
-                        roomSize.X = std::max(2.0f, roomSizeEdit.X);
-                        roomSize.Y = std::max(2.0f, roomSizeEdit.Y);
-                        roomSize.Z = std::max(2.0f, roomSizeEdit.Z);
-                        bRoomSizeChanged = true;
-                    }
-                }
-
-                ImGui::Spacing();
-                ImGui::Spacing();
-
-                auto clampToRoomBounds = [&roomSize](const MinimalVec3& position)
-                {
-                    return MinimalVec3{
-                        std::clamp(position.X, 1.0f, roomSize.X - 1),
-                        std::clamp(position.Y, 0.1f, roomSize.Y - 1),
-                        std::clamp(position.Z, 1.0f, roomSize.Z - 1)
-                    };
+                    .Base = {
+                        .Fmt = "%.1f",
+                        .Min = MinimalVec3(2.0f, 2.0f, 2.0f)
+                    },
+                    .Flags = ImGuiInputTextFlags_EnterReturnsTrue
                 };
 
+                GUI::PropertyInputVec3("Room Size", Undoable(mModel, &RoomModel::RoomSize), roomSizePropconfig);
+
+                Layout<Spacer, Spacer>();
+
+                const MinimalVec3 roomSize = mModel->RoomSize.Get();
+
+                const DragVec3Config positionsConfig
                 {
-                    ScopedItemOutline outline("Source Pos.", { 0, 1, 2 });
+                    .Base = {
+                        .Fmt = "%.1f",
+                        .Min = MinimalVec3(1.0f, 0.1, 1.0f),
+                        .Max = roomSize - MinimalVec3(1.0f, 1.0f, 1.0f)
+                    },
+                    .VSpead = 0.33f
+                };
 
-                    auto sourcePos = mModel.GetSourceAbsPosition();
-                    if (ImGui::DragFloat3("Source Pos.", sourcePos.mVF.data(), 0.33f, 0.0f, 0.0f, "%.1f"))
-                    {
-                        sourcePos = clampToRoomBounds(sourcePos);
-
-                        const MinimalVec3 newSourcePos = sourcePos / roomSize;
-                        mModel.Source.Set({ newSourcePos });
-                    }
-                }
-
+                // We store positions as proportion to room size,
+                // while display and edit in meters.
+                GUI::PropertyTransform transform
                 {
-                    ScopedItemOutline outline("Listener Pos.", { 0, 1, 2 });
+                    [&roomSize](const MinimalVec3& proportion) { return proportion * roomSize; },
+                    [&roomSize](const MinimalVec3& position) { return position / roomSize; },
+                };
 
-                    auto listenerPos = mModel.GetListenerAbsPosition();
-                    if (ImGui::DragFloat3("Listener Pos.", listenerPos.mVF.data(), 0.33f, 0.0f, 0.0f, "%.1f"))
-                    {
-                        listenerPos = clampToRoomBounds(listenerPos);
-
-                        const MinimalVec3 newListenerPos = listenerPos / roomSize;
-                        mModel.Listener.Set({ newListenerPos });
-                    }
-                }
+                GUI::PropertyDragVec3("Source Pos.", Undoable(mModel, &RoomModel::SourcePosition), positionsConfig, transform);
+                GUI::PropertyDragVec3("Listener Pos.", Undoable(mModel, &RoomModel::ListenerPosition), positionsConfig, transform);
             });
         });
-
-        if (bRoomSizeChanged)
-        {
-            mModel.RoomSize.Set({ roomSize });
-        }
     }
 
     ImDrawList* RoomView::DrawEnvironment()
     {
         using namespace ImGuiEx;
 
-        MinimalVec3 roomSize = mModel.RoomSize.Get().Size;
+        const MinimalVec3 roomSize = mModel->RoomSize.Get();
 
         ImDrawList* canvasDrawList = nullptr;
 
@@ -184,7 +159,7 @@ namespace JPL
 
     void RoomView::DrawListener()
     {
-        ImVec2 listenerPosition{ mModel.Listener.Get().Position.X, mModel.Listener.Get().Position.Z };
+        ImVec2 listenerPosition{ mModel->ListenerPosition.Get().X, mModel->ListenerPosition.Get().Z };
 
         const auto baseColour = Colour(mListener.Colour).WithValue(0.65f).WithSaturation(0.75f);
         const auto heldColour = baseColour.WithMultipliedValue(1.5f).WithMultipliedSaturation(1.1f);
@@ -198,16 +173,24 @@ namespace JPL
                              baseColour,
                              heldColour);
 
+        auto& history = JPLSpatialApplication::GetCommandHistory();
+
+        if (ImGui::IsItemActivated())
+            history.BeginPropertyEdit(Undoable(mModel, &RoomModel::ListenerPosition), "Listener Position");
+
         if (bListenerPositionChanged)
         {
-            const float Y = mModel.Listener.Get().Position.Y;
-            mModel.Listener.Set({ { listenerPosition.x, Y, listenerPosition.y } });
+            const float Y = mModel->ListenerPosition.Get().Y;
+            mModel->ListenerPosition.Set({ listenerPosition.x, Y, listenerPosition.y });
         }
+
+        if (ImGui::IsItemDeactivated())
+            history.EndPropertyEdit(Undoable(mModel, &RoomModel::ListenerPosition));
     }
 
     void RoomView::DrawSource()
     {
-        ImVec2 sourcePosition{ mModel.Source.Get().Position.X, mModel.Source.Get().Position.Z };
+        ImVec2 sourcePosition{ mModel->SourcePosition.Get().X, mModel->SourcePosition.Get().Z };
 
         const auto baseColour = Colour(mSource.Colour).WithValue(0.8f).WithSaturation(0.7f);
         const auto heldColour = baseColour.WithMultipliedValue(1.5f).WithMultipliedSaturation(1.1f);
@@ -221,11 +204,19 @@ namespace JPL
                              heldColour,
                              sourceRadius);
 
+        auto& history = JPLSpatialApplication::GetCommandHistory();
+
+        if (ImGui::IsItemActivated())
+            history.BeginPropertyEdit(Undoable(mModel, &RoomModel::SourcePosition), "Source Position");
+
         if (bSourcePositionChanged)
         {
-            const float Y = mModel.Source.Get().Position.Y;
-            mModel.Source.Set({ { sourcePosition.x, Y, sourcePosition.y } });
+            const float Y = mModel->SourcePosition.Get().Y;
+            mModel->SourcePosition.Set({ sourcePosition.x, Y, sourcePosition.y });
         }
+
+        if (ImGui::IsItemDeactivated())
+            history.EndPropertyEdit(Undoable(mModel, &RoomModel::SourcePosition));
     }
 
     bool RoomView::DrawObjectCircle(const char* stringId,

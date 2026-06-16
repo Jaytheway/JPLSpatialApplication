@@ -44,7 +44,7 @@ namespace JPL
 		};
 
 	public:
-		explicit RoomView(RoomModel& model);
+		explicit RoomView(const std::shared_ptr<RoomModel>& model);
 		void OnStart();
 		void DrawProperties();
 
@@ -68,7 +68,7 @@ namespace JPL
 		static ImVec2 GetAbsolutePosition(const ImRect& bounds, ImVec2 position);
 
 	private:
-		RoomModel& mModel;
+		std::shared_ptr<RoomModel> mModel;
 
 		Listener mListener;
 		Source mSource;

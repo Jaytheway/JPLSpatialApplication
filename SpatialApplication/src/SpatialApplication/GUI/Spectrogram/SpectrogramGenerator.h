@@ -24,6 +24,8 @@
 #include <JPLSpatial/Math/SIMD.h>
 #include <JPLSpatial/Math/SIMDMath.h>
 
+#include "Utility/MVCUtils.h"
+
 #include <numbers>
 #include <memory>
 #include <vector>
@@ -41,7 +43,7 @@ namespace audiofft
 namespace JPL::GUI
 {
 	//==========================================================================
-	struct SpectrogramParams
+	struct SpectrogramParams : GenericChangeBroadcaster
 	{
 		std::size_t FFTSize = 1024;
 		float MinDb = -96.0f;
@@ -111,7 +113,7 @@ namespace JPL::GUI
 		std::size_t mBinCount = 0;
 		std::unique_ptr<audiofft::AudioFFT> mFFT;
 
-		float mInvWindowSum;
+		float mInvWindowSum = 1.0f;
 		std::vector<float> mWindowedBuffer;
 		std::vector<float> mHannWindow;
 		std::vector<float> mRealOutput;

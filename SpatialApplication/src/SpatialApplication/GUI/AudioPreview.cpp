@@ -18,6 +18,7 @@
 //   CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "AudioPreview.h"
+#include "Application.h"
 
 #include "fonts/FontIcons.h"
 
@@ -27,7 +28,7 @@ namespace JPL::GUI
 		: mDataSource(dataSource)
 		, mWaveform(dataSource)
 		, mSpectrogram(dataSource)
-		, mMode(EAudioPreviewMode::Spectrogram)
+		, mMode(std::make_shared<EAudioPreviewMode>(EAudioPreviewMode::Spectrogram))
 	{
 	}
 
@@ -46,7 +47,7 @@ namespace JPL::GUI
 
 		ImGuiEx::ScopedGroup group(itemID);
 
-		switch (mMode)
+		switch (*mMode)
 		{
 		case EAudioPreviewMode::Waveform:
 		{
@@ -131,7 +132,14 @@ namespace JPL::GUI
 
 	void AudioPreview::SetMode(EAudioPreviewMode newMode)
 	{
-		mMode = newMode;
+		if (*mMode != newMode)
+		{
+			const EAudioPreviewMode oldValue = *mMode;
+			*mMode = newMode;
+
+			JPLSpatialApplication::GetCommandHistory()
+				.PropertyEdited(Undoable(mMode), OldValue(oldValue), "Audio Preview Mode");
+		}
 	}
 
 } // namespace JPL::GUI

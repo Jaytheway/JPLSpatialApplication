@@ -35,58 +35,45 @@ namespace JPL
 		RoomModel() = default;
 		~RoomModel() = default;
 
-		struct ListenerData
+		inline MinimalVec3 GetListenerAbsPosition() const
 		{
-			JPL::MinimalVec3 Position{ 0.5f, 1.8f / 5.0f, 0.5f }; // % of canvas size
-		};
-
-		struct SourceData
-		{
-			JPL::MinimalVec3 Position{ 0.5f, 2.6 / 5.0f, 0.3f }; // % of canvas size
-		};
-
-		struct RoomSizeData
-		{
-			JPL::MinimalVec3 Size{ 24.0f, 5.0f, 24.0f };
-		};
-
-		inline JPL::MinimalVec3 GetListenerAbsPosition() const
-		{
-			return Listener.Get().Position * RoomSize.Get().Size;
+			return ListenerPosition.Get() * RoomSize.Get();
 		}
 
-		inline JPL::MinimalVec3 GetSourceAbsPosition() const
+		inline MinimalVec3 GetSourceAbsPosition() const
 		{
-			return Source.Get().Position * RoomSize.Get().Size;
+			return SourcePosition.Get() * RoomSize.Get();
 		}
 
-		Property<ListenerData> Listener;
-		Property<SourceData> Source;
-		Property<RoomSizeData> RoomSize;
+		Property<MinimalVec3 > ListenerPosition
+		{
+			{ 11.0f / 24.0f, 1.8f / 5.0f, 14.0f / 24.0f } // % of canvas size
+			//{ 0.5f, 0.5f, 0.5f } //? temp for testing
+		};
+
+		Property<MinimalVec3 > SourcePosition
+		{
+			{ 13.0f / 24.0f, 2.6 / 5.0f, 8.0f / 24.0f } // % of canvas size
+			//{ 0.5f, 0.5f, 0.5f } //? temp for testing
+		};
+
+
+		Property<MinimalVec3> RoomSize
+		{
+			{ 24.0f, 5.0f, 24.0f }
+			//{ 12.0f, 12.0f, 12.0f } //? temp for testing
+		};
 
 		Property<bool> EnableSpecular{ true };
 		Property<bool> EnableDirect{ true };
 
-		std::shared_ptr<JPL::DirectSoundModel> DirectSound;
+		std::shared_ptr<DirectSoundModel> DirectSound;
+		// TODO: add BDPT model here as well
 
 		Property<const JPL::AcousticMaterial*> SurfaceMaterial{ JPL::AcousticMaterial::Get("ConcreteBlockRough") };
 
 		Property<uint32_t> NumPrimaryRays{ 100 };
-		Property<uint32_t> MaxOrder{ 2 };
+		Property<uint32_t> MaxOrder{ 4 };
 	};
 
-	inline bool operator==(const typename RoomModel::ListenerData& a, const typename RoomModel::ListenerData& b)
-	{
-		return a.Position == b.Position;
-	}
-
-	inline bool operator==(const typename RoomModel::SourceData& a, const typename RoomModel::SourceData& b)
-	{
-		return a.Position == b.Position;
-	}
-
-	inline bool operator==(const typename RoomModel::RoomSizeData& a, const typename RoomModel::RoomSizeData& b)
-	{
-		return a.Size == b.Size;
-	}
 } // namespace JPL
