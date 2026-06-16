@@ -259,4 +259,11 @@ namespace JPL::ImGuiEx
 		~ScopedGroup();
 	};
 
+	class ScopedTextWrapPos : private NonCopyable
+	{
+	public:
+		ScopedTextWrapPos(float wrapPosition = 0.0f) { ImGui::PushTextWrapPos(wrapPosition); }
+		~ScopedTextWrapPos() { ImGui::PopTextWrapPos(); }
+	};
+
 } // namespace JPL::ImGuiEx
