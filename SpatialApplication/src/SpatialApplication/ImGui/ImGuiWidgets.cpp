@@ -213,6 +213,34 @@ namespace JPL::ImGuiEx
 		}
 	}
 
+	namespace IconStyle
+	{
+		const IconButtonStyle cIconLabelBgHovered = []()
+		{
+			const Colour colourN = Colour(GUI::Colours::Theme::Text).WithMultipliedValue(0.9f);
+			const Colour colourH = colourN;
+			const Colour colourP = colourH.WithMultipliedValue(0.8f);
+			return IconButtonStyle{
+				.ColourNormal = colourN,
+				.ColourHovered = colourH,
+				.ColourPressed = colourP,
+				.BgColourHovered = IM_COL32(255, 255, 255, 10),
+				.BgColourPressed = IM_COL32(255, 255, 255, 10)
+			};
+		}();
+
+		const IconButtonStyle cIconLabelBgAlways = []()
+		{
+			IconButtonStyle style = cIconLabelBgHovered;
+
+			style.BgColourNormal = IM_COL32(255, 255, 255, 10);
+			style.BgColourHovered = IM_COL32(255, 255, 255, 20);
+			style.BgColourPressed = style.BgColourHovered;
+			return style;
+		}();
+
+	} // namespace IconStyle
+
 	bool IconButton(const char* label, const IconButtonStyle& style)
 	{
 		const ImVec2 position = ImGui::GetCursorScreenPos();

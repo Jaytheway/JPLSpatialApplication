@@ -110,6 +110,13 @@ namespace JPL::ImGuiEx
 		ImVec2 ButtonSize = ImVec2(0.0f, 0.0f);
 	};
 
+	// Predefined IconButton styles
+	namespace IconStyle
+	{
+		extern const IconButtonStyle cIconLabelBgHovered;
+		extern const IconButtonStyle cIconLabelBgAlways;
+	} // namespace IconStyle
+
 	bool IconButton(const char* label, const IconButtonStyle& style = {});
 	inline bool IconButton(const char8_t* label, const IconButtonStyle& style = {}) { return IconButton((const char*)(label), style); }
 
