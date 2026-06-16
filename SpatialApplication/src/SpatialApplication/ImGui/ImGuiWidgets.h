@@ -26,6 +26,7 @@
 #include <Walnut/Image.h>
 
 #include <JPLSpatial/Math/SIMD.h>
+#include <JPLSpatial/Math/MinimalVec3.h>
 
 #include <concepts>
 #include <span>
@@ -35,7 +36,9 @@
 
 namespace JPL::ImGuiEx
 {
-    bool PropertyCheckbox(const char* label, Property<bool>& property);
+    bool Checkbox(const char* label, bool& value);
+
+    bool Checkbox(const char* label, Property<bool>& property);
 
 	//==========================================================================
 	/// Button Image
@@ -109,6 +112,12 @@ namespace JPL::ImGuiEx
 
 	bool IconButton(const char* label, const IconButtonStyle& style = {});
 	inline bool IconButton(const char8_t* label, const IconButtonStyle& style = {}) { return IconButton((const char*)(label), style); }
+
+	//==========================================================================
+	/// Button
+
+	/// Pretty much identical to ImGui::Button, but with label offset when pressed
+	bool Button(const char* label, const ImVec2& size = ImVec2(0, 0));
 
 	//==========================================================================
 	/// Graphic EQ widget with vertical sliders for frequency band gains
@@ -201,6 +210,36 @@ namespace JPL::ImGuiEx
 	template<std::integral T>
 	inline bool Input(const char* label, Property<T>& property, const InputConfig<T>& config = { .Step = 1, .StepFast = 100, .Fmt = "%d" });
 
+
+	//==========================================================================
+	/// Vec3 widgets
+
+	struct PropertyVec3Config
+	{
+		const char* Fmt = "%.1f";
+
+		std::optional<MinimalVec3> Min;
+		std::optional<MinimalVec3> Max;
+	};
+
+	struct InputVec3Config
+	{
+		PropertyVec3Config Base;
+		ImGuiInputTextFlags Flags = 0;
+	};
+
+	struct DragVec3Config
+	{
+		PropertyVec3Config Base;
+		float VSpead = 1.0f;
+		ImGuiSliderFlags Flags = 0;
+	};
+
+	bool InputVec3(const char* label, MinimalVec3& value, const ImGuiEx::InputVec3Config& config = {});
+	bool InputVec3(const char* label, Property<MinimalVec3>& property, const ImGuiEx::InputVec3Config& config = {});
+	bool DragVec3(const char* label, MinimalVec3& value, const ImGuiEx::DragVec3Config& config = {});
+	bool DragVec3(const char* label, Property<MinimalVec3>& property, const ImGuiEx::DragVec3Config& config = {});
+
 	
 	//==========================================================================
 	/// Spacers & Separators
@@ -228,6 +267,20 @@ namespace JPL::ImGuiEx
 
 		(drawElement.operator()<Ts>(),...);
 	}
+
+
+	//==========================================================================
+	/// Combo boxes
+
+	template<class Callback, class DataType>
+	concept CComboGetNameCb = std::is_invocable_r_v<const char*, Callback, const DataType&, int>;
+
+	template<class T, class GetNameCb, class...Args> requires (CComboGetNameCb<GetNameCb, T>)
+	bool Combo(const char* label,
+				int& selectedItemIndex,
+				std::span<const T> items,
+				const GetNameCb& getNameCb,
+				int popupMaxHeightInItems = -1);
 
 } // namespace JPL::ImGuiEx
 
@@ -446,5 +499,33 @@ namespace JPL::ImGuiEx
 		{
 			return false;
 		}
+	}
+
+	template<class T, class GetNameCb, class ...Args>  requires (CComboGetNameCb<GetNameCb, T>)
+	bool Combo(const char* label, int& selectedItemIndex, std::span<const T> items, const GetNameCb& getNameCb, int popupMaxHeightInItems)
+	{
+		// Combo boxes have different outline colour,
+		// because we don't want the widget be distracting
+		// in the background while its popup is open.
+		ImGuiEx::ScopedItemOutline outline(label, ImGuiEx::OutlineFlags_NoOutlineInactive, ImColor(60, 60, 60));
+
+		auto getNameCbImpl = [&](int index) -> const char*
+		{
+			return getNameCb(items[index], index);
+		};
+		using GetNameCbImpl = decltype(getNameCbImpl);
+		
+		auto getNameCbInternal = [](void* cb, int index) -> const char*
+		{
+			return (*static_cast<GetNameCbImpl*>(cb))(index);
+		};
+
+		const bool bModified = ImGui::Combo(label,
+											&selectedItemIndex,
+											getNameCbInternal,
+											&getNameCbImpl,
+											static_cast<int>(items.size()),
+											popupMaxHeightInItems);
+		return bModified;
 	}
 } // namespace JPL::ImGuiEx

@@ -25,11 +25,21 @@
 
 namespace JPL::ImGuiEx
 {
-    bool PropertyCheckbox(const char* label, Property<bool>& property)
+	namespace Constant
+	{
+		static constexpr float cPressedLabelOffset = 1.0f;
+	}
+
+	bool Checkbox(const char* label, bool& value)
+	{
+        ScopedItemOutline outline(label, OutlineFlags_NoOutlineInactive, ImColor(60, 60, 60));
+		return ImGui::Checkbox(label, &value);
+	}
+
+    bool Checkbox(const char* label, Property<bool>& property)
     {
         bool bValue = property.Get();
-        ScopedItemOutline outline(label, OutlineFlags_NoOutlineInactive, ImColor(60, 60, 60));
-        if (ImGui::Checkbox(label, &bValue))
+        if (Checkbox(label, bValue))
         {
             property.Set(bValue);
             return true;
@@ -224,18 +234,21 @@ namespace JPL::ImGuiEx
 		
 		// Visuals we draw outselves...
 
+		const bool bIsActive = ImGui::IsItemActive();
+		const bool bIsHovered = ImGui::IsItemHovered();
+
 		const ImU32 backgroundColour =
-			ImGui::IsItemActive() ? style.BgColourPressed :
-			ImGui::IsItemHovered() ? style.BgColourHovered :
+			bIsActive ? style.BgColourPressed :
+			bIsHovered ? style.BgColourHovered :
 			style.BgColourNormal;
 
 		const ImU32 iconColour =
-			ImGui::IsItemActive() ? style.ColourPressed :
-			ImGui::IsItemHovered() ? style.ColourHovered :
+			bIsActive ? style.ColourPressed :
+			bIsHovered ? style.ColourHovered :
 			style.ColourNormal;
 
-		const ImVec2 bbMin = ImGui::GetItemRectMin();
-		const ImVec2 bbMax = ImGui::GetItemRectMax();
+		ImVec2 bbMin = ImGui::GetItemRectMin();
+		ImVec2 bbMax = ImGui::GetItemRectMax();
 
 		// Draw background and border
 		auto* drawList = ImGui::GetWindowDrawList();
@@ -244,11 +257,64 @@ namespace JPL::ImGuiEx
 		{
 			drawList->AddRect(bbMin, bbMax, style.BorderColour, ImGui::GetStyle().FrameRounding);
 		}
-		
+
+		if (bIsActive)
+		{
+			bbMin.y += Constant::cPressedLabelOffset;
+			bbMax.y += Constant::cPressedLabelOffset;
+		}
+
 		// Draw icon text label
 		DrawTextCentered(*drawList, bbMin, bbMax, label, iconColour);
 
 		return bPressed;
+	}
+
+	bool Button(const char* label, const ImVec2& size_arg)
+	{
+		// Pretty much copy of ImGui::ButtonEx,
+		// - removed ImGuiButton flags handling, since default ImGui::Button just passes _None
+		// - added label offset when button is pressed
+
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return false;
+
+		ImGuiContext& g = *GImGui;
+		const ImGuiStyle& style = g.Style;
+		const ImGuiID id = window->GetID(label);
+		const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+
+		ImVec2 pos = window->DC.CursorPos;
+		ImVec2 size = ImGui::CalcItemSize(size_arg, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
+
+		const ImRect bb(pos, pos + size);
+		ImGui::ItemSize(size, style.FramePadding.y);
+		if (!ImGui::ItemAdd(bb, id))
+			return false;
+
+		bool hovered, held;
+		bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_None);
+
+		// Render
+		const ImU32 col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+		ImGui::RenderNavCursor(bb, id);
+		ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
+
+		if (g.LogEnabled)
+			ImGui::LogSetNextTextDecoration("[", "]");
+
+		//! This is where we modify bb to render text "pressed"
+		// (note using button pressed result doesn't work, we have to check held and hovered)
+		const ImVec2 labelOffset(0.0f, (held && hovered) ? Constant::cPressedLabelOffset : 0.0f);
+
+		ImGui::RenderTextClipped(bb.Min + style.FramePadding + labelOffset,
+								 bb.Max - style.FramePadding + labelOffset,
+								 label, NULL, &label_size,
+								 style.ButtonTextAlign,
+								 &bb);
+
+		return pressed;
 	}
 
 	/*IconButtonStyle IconButtonStyle::Make(ImU32 colourNormal, ImU32 colourHovered, ImU32 colourPressed)
@@ -413,5 +479,101 @@ namespace JPL::ImGuiEx
 			values.Set(v);
 
 		return modifiedBand;
+	}
+
+	bool InputVec3(const char* label, MinimalVec3& value, const ImGuiEx::InputVec3Config& config)
+	{
+		// ImGui multi-input widgets push id of the field index,
+		// so we need to detect component id for our outline logic
+		ImGuiEx::ScopedItemOutline outline(label, { 0, 1, 2 });
+
+		int flags = config.Flags;
+
+		// ImGui doesn't support this flag for input scalar natively
+		bool bTrueOnEnter = false;
+		if ((flags & ImGuiInputTextFlags_EnterReturnsTrue))
+		{
+			flags ^= ImGuiInputTextFlags_EnterReturnsTrue;
+			bTrueOnEnter = true;
+		}
+		
+		MinimalVec3 originalValue = value;
+
+		const bool bModified = ImGui::InputFloat3(label, &value.X, config.Base.Fmt, flags);
+
+		if (bModified)
+		{
+			if (bTrueOnEnter and not ImGui::IsItemDeactivatedAfterEdit())
+			{
+				value = originalValue;
+				return false;
+			}
+
+			if (config.Base.Min)
+			{
+				value.X = std::max(config.Base.Min->X, value.X);
+				value.Y = std::max(config.Base.Min->Y, value.Y);
+				value.Z = std::max(config.Base.Min->Z, value.Z);
+			}
+
+			if (config.Base.Max)
+			{
+				value.X = std::min(config.Base.Max->X, value.X);
+				value.Y = std::min(config.Base.Max->Y, value.Y);
+				value.Z = std::min(config.Base.Max->Z, value.Z);
+			}
+		}
+
+		return bModified;
+	}
+
+	bool InputVec3(const char* label, Property<MinimalVec3>& value, const ImGuiEx::InputVec3Config& config)
+	{
+		MinimalVec3 v = value.Get();
+		if (InputVec3(label, v, config))
+		{
+			value.Set(v);
+			return true;
+		}
+		return false;
+	}
+
+	bool DragVec3(const char* label, MinimalVec3& value, const ImGuiEx::DragVec3Config& config)
+	{
+		// ImGui multi-input widgets push id of the field index,
+		// so we need to detect component id for our outline logic
+		ImGuiEx::ScopedItemOutline outline(label, { 0, 1, 2 });
+
+		const bool bModified = ImGui::DragFloat3(label, &value.X, config.VSpead, 0.0f, 0.0f, config.Base.Fmt, config.Flags);
+
+		if (bModified)
+		{
+			if (config.Base.Min)
+			{
+				value.X = std::max(config.Base.Min->X, value.X);
+				value.Y = std::max(config.Base.Min->Y, value.Y);
+				value.Z = std::max(config.Base.Min->Z, value.Z);
+			}
+
+			if (config.Base.Max)
+			{
+				value.X = std::min(config.Base.Max->X, value.X);
+				value.Y = std::min(config.Base.Max->Y, value.Y);
+				value.Z = std::min(config.Base.Max->Z, value.Z);
+			}
+		}
+
+		return bModified;
+	}
+
+	bool DragVec3(const char* label, Property<MinimalVec3>& value, const ImGuiEx::DragVec3Config& config)
+	{
+		MinimalVec3 v = value.Get();
+		if (DragVec3(label, v, config))
+		{
+			value.Set(v);
+			return true;
+		}
+		return false;
 	}
 } // namespace JPL::ImGuiEx
