@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <concurrentqueue.h>
+
 #include <coroutine>
 #include <functional>
 #include <queue>
@@ -29,6 +31,9 @@ namespace JPL
 	class EventsLoop
 	{
 	public:
+		using Event = std::function<void()>;
+
+	public:
 		static EventsLoop& Get() { static EventsLoop sEL; return sEL; }
 
 		template<class Function>
@@ -38,31 +43,25 @@ namespace JPL
 		/// scheduled events
 		void Process()
 		{
-			std::queue<std::function<void()>> localQueue;
-			{
-				std::scoped_lock lockQueue(mEventsQueueMutex);
-				localQueue.swap(mEventQueue);
-			}
+			// Dequeue only what's currently in the queue
+			// to avoid looping endlessesly over possible recursive enqueues
+			std::size_t numEvents = mEventQueue.size_approx();
 
-			while (not localQueue.empty())
-			{
-				auto& func = localQueue.front();
-				func();
-				localQueue.pop();
-			}
+			Event event;
+			while (numEvents-- and mEventQueue.try_dequeue(event))
+				std::invoke(event);
 		}
 
 	private:
 		template<class Function>
 		void Enqueue(Function&& function)
 		{
-			std::scoped_lock lockQueue(mEventsQueueMutex);
-			mEventQueue.push(std::forward<Function>(function));
+			mEventQueue.enqueue(std::forward<Function>(function));
 		}
 
 	private:
-		std::mutex mEventsQueueMutex;
-		std::queue<std::function<void()>> mEventQueue;
+		static constexpr std::size_t cInitialQueueSize = 1024;
+		moodycamel::ConcurrentQueue<Event> mEventQueue{ cInitialQueueSize };
 	};
 
 	namespace Coro
