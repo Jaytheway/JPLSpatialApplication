@@ -23,8 +23,6 @@
 
 #include <coroutine>
 #include <functional>
-#include <queue>
-#include <mutex>
 
 namespace JPL
 {
