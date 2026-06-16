@@ -334,24 +334,24 @@ namespace JPL
 	struct Undoable<T, EUndoableType::Value> final
 	{
 		Undoable(const std::shared_ptr<T>& value)
-			: SharedValue(value)
+			: mSharedValue(value)
 		{}
 
 		void* GetDataAddress() const
 		{
-			const auto sharedValue = SharedValue.lock();
+			const auto sharedValue = mSharedValue.lock();
 			return sharedValue ? std::addressof(*sharedValue) : nullptr;
 		}
 
 		std::optional<T> GetValue() const
 		{
-			const auto sharedValue = SharedValue.lock();
+			const auto sharedValue = mSharedValue.lock();
 			return sharedValue ? *sharedValue : std::optional<T>{};
 		}
 
 		bool SetValue(const T& newValue) const
 		{
-			if (const auto property = SharedValue.lock())
+			if (const auto property = mSharedValue.lock())
 			{
 				*property = newValue;
 				return true;
@@ -361,31 +361,32 @@ namespace JPL
 
 		inline operator bool() const { return GetDataAddress() != nullptr; }
 
-		std::weak_ptr<T> SharedValue;
+	private:
+		std::weak_ptr<T> mSharedValue;
 	};
 
 	template<class T>
 	struct Undoable<T, EUndoableType::Property> final
 	{
 		Undoable(const std::shared_ptr<Property<T>>& property)
-			: SharedProperty(property)
+			: mSharedProperty(property)
 		{}
 
 		void* GetDataAddress() const
 		{
-			const auto sharedValue = SharedProperty.lock();
+			const auto sharedValue = mSharedProperty.lock();
 			return sharedValue ? std::addressof(*sharedValue) : nullptr;
 		}
 
 		std::optional<T> GetValue() const
 		{
-			const auto sharedValue = SharedProperty.lock();
+			const auto sharedValue = mSharedProperty.lock();
 			return sharedValue ? sharedValue->Get() : std::optional<T>{};
 		}
 
 		bool SetValue(const T& newValue) const
 		{
-			if (const auto property = SharedProperty.lock())
+			if (const auto property = mSharedProperty.lock())
 			{
 				property->Set(newValue);
 				return true;
@@ -395,70 +396,72 @@ namespace JPL
 
 		inline operator bool() const { return GetDataAddress() != nullptr; }
 
-		std::weak_ptr<Property<T>> SharedProperty;
+	private:
+		std::weak_ptr<Property<T>> mSharedProperty;
 	};
 
 	template<class T, class Model>
 	struct Undoable<T, EUndoableType::ModelValue, Model> final
 	{
 		Undoable(const std::shared_ptr<Model>& model, T Model::* valuePtr)
-			: Model(valuePtr ? model : nullptr)
-			, ValuePtr(model ? valuePtr : nullptr)
+			: mModel(valuePtr ? model : nullptr)
+			, mValuePtr(model ? valuePtr : nullptr)
 		{}
 
 		void* GetDataAddress() const
 		{
-			const auto model = Model.lock();
-			return model ? std::addressof((*model).*ValuePtr) : nullptr;
+			const auto model = mModel.lock();
+			return model ? std::addressof((*model).*mValuePtr) : nullptr;
 		}
 
 		std::optional<T> GetValue() const
 		{
-			const auto model = Model.lock();
-			return model ? (*model).*ValuePtr : std::optional<T>{};
+			const auto model = mModel.lock();
+			return model ? (*model).*mValuePtr : std::optional<T>{};
 		}
 
 		bool SetValue(const T& newValue) const
 		{
-			if (const auto model = Model.lock())
+			if (const auto model = mModel.lock())
 			{
-				(*model).*ValuePtr = newValue;
+				(*model).*mValuePtr = newValue;
 				return true;
 			}
 			return false;
 		}
 
 		inline operator bool() const { return GetDataAddress() != nullptr; }
-
-		std::weak_ptr<Model> Model;
-		T Model::* ValuePtr;
+	
+	private:
+		std::weak_ptr<Model> mModel;
+		T Model::* mValuePtr;
 	};
 
 	template<class T, class Model>
 	struct Undoable<T, EUndoableType::ModelProperty, Model> final
 	{
 		Undoable(const std::shared_ptr<Model>& model, Property<T> Model::* propertyPtr)
-			: Model(propertyPtr ? model : nullptr)
-			, PropertyPtr(model ? propertyPtr : nullptr)
+			: mModel(propertyPtr ? model : nullptr)
+			, mPropertyPtr(model ? propertyPtr : nullptr)
 		{}
 
 		void* GetDataAddress() const
 		{
-			const auto model = Model.lock();
-			return model ? std::addressof((*model).*PropertyPtr) : nullptr;
+			const auto model = mModel.lock();
+			return model ? std::addressof((*model).*mPropertyPtr) : nullptr;
 		}
 
 		std::optional<T> GetValue() const
 		{
-			const auto model = Model.lock();
-			return model ? ((*model).*PropertyPtr).Get() : std::optional<T>{};
+			const auto model = mModel.lock();
+			return model ? ((*model).*mPropertyPtr).Get() : std::optional<T>{};
 		}
 
 		bool SetValue(const T& newValue) const
 		{
-			if (const auto model = Model.lock())
+			if (const auto model = mModel.lock())
 			{
-				((*model).*PropertyPtr).Set(newValue);
+				((*model).*mPropertyPtr).Set(newValue);
 				return true;
 			}
 			return false;
@@ -466,8 +469,9 @@ namespace JPL
 
 		inline operator bool() const { return GetDataAddress() != nullptr; }
 
-		std::weak_ptr<Model> Model;
-		Property<T> Model::* PropertyPtr;
+	private:
+		std::weak_ptr<Model> mModel;
+		Property<T> Model::* mPropertyPtr;
 	};
 	
 	//======================================================================
@@ -494,32 +498,55 @@ namespace JPL
 			if (not mNewValue)
 				return false;
 
-			auto printValue = [&]
-			{
-				if (mPropertyLabel.empty())
-					output << "Property edit" << " [" << mOldValue << "] -> [" << *mNewValue << ']';
-				else
-					output << "Set '" << mPropertyLabel << "' [" << mOldValue << "] -> [" << *mNewValue << ']';
-			};
 
 			if constexpr (std::is_pointer_v<std::remove_cvref_t<T>>)
 			{
-				// If either is a nullptr, print as pointer
-				if (mOldValue == nullptr or mNewValue.value() == nullptr)
+				auto printValueOrNULL = [&output](const auto* ptr)
 				{
-					printValue();
+					if (ptr) output << *ptr;
+					else output << "NULL";
+				};
+
+				if (mPropertyLabel.empty())
+				{
+					// "Property edit [old value] -> [new value]"
+					output << "Property edit" << " [";
+					printValueOrNULL(mOldValue);
+					output << "] -> [";
+					printValueOrNULL(mNewValue.value());
+					output << ']';
 				}
-				else // if both pointers are valid, assume we need to print value
+				else
 				{
-					if (mPropertyLabel.empty())
-						output << "Property edit" << " [" << *mOldValue << "] -> [" << *(mNewValue.value()) << ']';
-					else
-						output << "Set '" << mPropertyLabel << "' [" << *mOldValue << "] -> [" << *(mNewValue.value()) << ']';
+					// "Set `Property Label` [old value] -> [new value]"
+					output << "Set '" << mPropertyLabel << "' [";
+					printValueOrNULL(mOldValue);
+					output << "] -> [";
+					printValueOrNULL(mNewValue.value());
+					output << ']';
 				}
 			}
 			else
 			{
-				printValue();
+				if (mPropertyLabel.empty())
+				{
+					output << "Property edit"
+						<< " ["
+						<< mOldValue
+						<< "] -> ["
+						<< *mNewValue
+						<< ']';
+				}
+				else
+				{
+					output << "Set '"
+						<< mPropertyLabel
+						<< "' ["
+						<< mOldValue
+						<< "] -> ["
+						<< *mNewValue
+						<< ']';
+				}
 			}
 
 			return true;
