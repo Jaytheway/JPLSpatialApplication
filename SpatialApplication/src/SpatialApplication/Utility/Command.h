@@ -426,6 +426,22 @@ namespace JPL
 			if (const auto model = mModel.lock())
 			{
 				(*model).*mValuePtr = newValue;
+
+				// If model implements change broadcasting interface, like GenericChangeBroadcaster,
+				// we can let listeners know that value was modified.
+				// 
+				// This may be undesireable in some cases,
+				// if those cases arise, we may switch to more of an "opt-in" approach,
+				// or even broadcast all undo/redo operations from CommandHistory
+				// passing property address as parameters to let listeners
+				// determine if they want to react to that change.
+				// However, that could result in many "empty" calls to listeners
+				// that don't care about given undo/redo operation.
+				if constexpr (requires(Model& object) { object.BroadcastChange(); })
+				{
+					model->BroadcastChange();
+				}
+
 				return true;
 			}
 			return false;
