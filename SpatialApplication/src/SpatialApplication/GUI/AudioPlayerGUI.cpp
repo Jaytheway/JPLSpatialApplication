@@ -102,6 +102,14 @@ namespace JPL
 					const bool bAudioPlayerLooping = mAudioPlayer.IsLooping();
 					if (not JPL_ENSURE(bAudioPlayerLooping == mLooping->Get()))
 					{
+						static uint32 messageCount = 0; // avoid spamming
+						if (messageCount-- < 5)
+						{
+							Log::Warn("AudioPlayerGUI: "
+									  "Audio player's looping state have been changed from the outside of GUI. "
+									  "Consider refactoring Audio Player to use shared property. "
+									  "For now forcing to looping state set in GUI.");
+						}
 
 						mAudioPlayer.SetLooping(mLooping->Get());
 					}
