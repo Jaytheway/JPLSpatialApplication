@@ -69,7 +69,7 @@ namespace JPL::GUI
 	};
 
 	template<class Vec3Type, class...Args> requires (std::same_as<Vec3Type, MinimalVec3> or std::same_as<Vec3Type, Property<MinimalVec3>>)
-	bool PropertyVec3Input(const char* label,
+	bool PropertyInputVec3(const char* label,
 						   const Undoable<Vec3Type, Args...>& undoable,
 						   const ImGuiEx::InputVec3Config& config = {});
 
@@ -79,7 +79,7 @@ namespace JPL::GUI
 		class InvTransformPred = std::identity,
 		class...Args
 	> requires (std::same_as<Vec3Type, MinimalVec3> or std::same_as<Vec3Type, Property<MinimalVec3>>)
-	bool PropertyVec3Drag(const char* label,
+	bool PropertyDragVec3(const char* label,
 						  const Undoable<Vec3Type, Args...>& undoable,
 						  const ImGuiEx::DragVec3Config& config = {},
 						  const PropertyTransform<TransformPred, InvTransformPred>& transform = {});
@@ -258,7 +258,7 @@ namespace JPL::GUI
 	}
 
 	template<class Vec3Type, class...Args> requires (std::same_as<Vec3Type, MinimalVec3> or std::same_as<Vec3Type, Property<MinimalVec3>>)
-	bool PropertyVec3Input(const char* label,
+	bool PropertyInputVec3(const char* label,
 						   const Undoable<Vec3Type, Args...>& undoable,
 						   const ImGuiEx::InputVec3Config& config)
 	{
@@ -291,7 +291,7 @@ namespace JPL::GUI
 	}
 
 	template<class Vec3Type, class TransformPred, class InvTransformPred, class...Args> requires (std::same_as<Vec3Type, MinimalVec3> or std::same_as<Vec3Type, Property<MinimalVec3>>)
-	bool PropertyVec3Drag(const char* label,
+	bool PropertyDragVec3(const char* label,
 						  const Undoable<Vec3Type, Args...>& undoable,
 						  const ImGuiEx::DragVec3Config& config,
 						  const PropertyTransform<TransformPred, InvTransformPred>& transform)
