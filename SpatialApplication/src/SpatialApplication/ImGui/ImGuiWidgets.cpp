@@ -76,6 +76,7 @@ namespace JPL::ImGuiEx
 #endif
         ScopedColourStack buttonColours(
             ImGuiCol_Button, IM_COL32_BLACK_TRANS,
+            ImGuiCol_ButtonHovered, IM_COL32(255, 255, 255, 10),
             ImGuiCol_Border, IM_COL32_BLACK_TRANS
         );
         Conditional<ScopedColour> separatorColor(
