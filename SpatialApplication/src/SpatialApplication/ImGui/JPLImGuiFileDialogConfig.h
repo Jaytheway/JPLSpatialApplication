@@ -101,7 +101,7 @@
 // button widget use for compose path
 #define IMGUI_PATH_BUTTON JPL::ImGuiEx::PathButton
 // standard button
-// #define IMGUI_BUTTON ImGui::Button
+#define IMGUI_BUTTON JPL::ImGuiEx::Button
 
 /////////////////////////////////
 //// STRING'S ///////////////////
