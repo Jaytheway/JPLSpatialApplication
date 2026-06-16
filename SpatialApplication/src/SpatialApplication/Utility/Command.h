@@ -26,6 +26,7 @@
 #include <JPLSpatial/ErrorReporting.h>
 
 #include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_iostream.hpp>
 
 #include <concepts>
 #include <ios>
@@ -498,6 +499,8 @@ namespace JPL
 			if (not mNewValue)
 				return false;
 
+			// Lets us print enums
+			using magic_enum::ostream_operators::operator<<;
 
 			if constexpr (std::is_pointer_v<std::remove_cvref_t<T>>)
 			{
