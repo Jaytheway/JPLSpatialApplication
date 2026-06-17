@@ -208,6 +208,7 @@ namespace JPL::GUI
 		Conditional<ScopedFont> italicFont(not mTextFilter.IsActive(), GetItalicFont());
 		ScopedStyle rounderCorners(ImGuiStyleVar_FrameRounding, 8.0f);
 		ScopedStyle largerPadding(ImGuiStyleVar_FramePadding, ImVec2(10.0f, ImGui::GetStyle().FramePadding.y));
+		ScopedItemOutline outline("##Search Log");
 
 		const bool filterChagned =
 			ImGui::InputTextWithHint("##Search Log",
