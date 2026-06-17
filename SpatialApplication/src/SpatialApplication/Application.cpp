@@ -74,7 +74,7 @@ namespace JPL
 			mLateReverbModel = std::make_shared<LateReverbModel>();
 			
 			mAudioPlaybackLayer = std::make_shared<AudioPlaybackLayer>(mDirectSoundModel, mLateReverbModel);
-			mRoomLayer = std::make_shared<RoomLayer>(mDirectSoundModel, mLateReverbModel);
+			mRoomLayer = std::make_shared<RoomLayer>(mDirectSoundModel, mLateReverbModel, mVBAPVisView);
 
 			mAudioPlaybackLayer->SetVBAPModel(mVBAPVis->VBAPModel);
 
@@ -128,7 +128,7 @@ namespace JPL
 #endif
 			ImGuiEx::Window("VBAP", [&]
 			{
-				mVBAPVisView.Draw();
+				mVBAPVisView->Draw();
 			}, nullptr, { .Flags = ImGuiWindowFlags_NoCollapse });
 
 #if 0
@@ -256,7 +256,7 @@ namespace JPL
 		std::shared_ptr<RoomLayer> mRoomLayer;
 
 		std::shared_ptr<VBAPVisualizationModel> mVBAPVis{ std::make_shared<VBAPVisualizationModel>() };
-		VBAPVisualization mVBAPVisView{ mVBAPVis };
+		std::shared_ptr<VBAPVisualization> mVBAPVisView{ std::make_shared<VBAPVisualization>(mVBAPVis) };
 
 		static inline std::shared_ptr<Walnut::Image> sLogoImage{};
 

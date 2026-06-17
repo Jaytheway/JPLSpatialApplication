@@ -81,8 +81,10 @@ namespace JPL
 
 	//==========================================================================
 	RoomLayer::RoomLayer(const std::shared_ptr<DirectSoundModel>& directSoundModel,
-						 const std::shared_ptr<LateReverbModel>& lateReverbModel)
-		: mDirectSoundModel(directSoundModel)
+						 const std::shared_ptr<LateReverbModel>& lateReverbModel,
+						 const std::shared_ptr<VBAPVisualization>& vbapVisualization)
+		: mRoomView(mRoom, vbapVisualization)
+		, mDirectSoundModel(directSoundModel)
 		, mLateReverbModel(lateReverbModel)
 		, mLateReverbGUI(mLateReverbModel)
 	{

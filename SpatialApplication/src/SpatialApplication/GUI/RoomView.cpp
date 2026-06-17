@@ -44,14 +44,11 @@ namespace JPL
         return position * bounds.GetSize() + bounds.Min;
     }
 
-    RoomView::RoomView(const std::shared_ptr<RoomModel>& model)
+    RoomView::RoomView(const std::shared_ptr<RoomModel>& model, const std::weak_ptr<const VBAPVisualization>& vbapVisualization)
         : mModel(model)
+        , mVBAPVis(vbapVisualization)
     {
         JPL_ASSERT(mModel);
-    }
-
-    void RoomView::OnStart()
-    {
     }
 
     void RoomView::DrawProperties()
@@ -173,6 +170,8 @@ namespace JPL
                              baseColour,
                              heldColour);
 
+        DrawVBAPPoints(listenerPosition);
+
         auto& history = JPLSpatialApplication::GetCommandHistory();
 
         if (ImGui::IsItemActivated())
@@ -217,6 +216,22 @@ namespace JPL
 
         if (ImGui::IsItemDeactivated())
             history.EndPropertyEdit(Undoable(mModel, &RoomModel::SourcePosition));
+    }
+
+    void RoomView::DrawVBAPPoints(const ImVec2& position)
+    {
+        if (const auto vbapVis = mVBAPVis.lock())
+        {
+            auto* drawList = ImGui::GetWindowDrawList();
+            
+            const ImVec2 posAbs = GetAbsolutePosition(GetCanvasBounds(), position);
+            const float radius = mSourceSize * mCanvasResolution * 0.5f;
+            const ImVec2 offset(radius, radius);
+            
+            const ImRect bounds(posAbs - offset, posAbs + offset);
+
+            vbapVis->DrawDirectionPoints(drawList, bounds);
+        }
     }
 
     bool RoomView::DrawObjectCircle(const char* stringId,

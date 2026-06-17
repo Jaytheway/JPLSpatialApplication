@@ -23,6 +23,7 @@
 
 #include "GUI/RoomView.h"
 #include "GUI/LateReverbGUI.h"
+#include "GUI/VBAPVisualization.h"
 #include "Model/RoomModel.h"
 #include "Model/DirectSoundModel.h"
 #include "Model/LateReverbModel.h"
@@ -56,7 +57,8 @@ namespace JPL
 	{
 	public:
 		RoomLayer(const std::shared_ptr<DirectSoundModel>& directSoundModel,
-				  const std::shared_ptr<LateReverbModel>& lateReverbModel);
+				  const std::shared_ptr<LateReverbModel>& lateReverbModel,
+				  const std::shared_ptr<VBAPVisualization>& vbapVisualization);
 
 		~RoomLayer();
 
@@ -83,14 +85,14 @@ namespace JPL
 		void UpdateReverbTime();
 	private:
 		std::shared_ptr<RoomModel> mRoom{ std::make_shared<RoomModel>() };
-		RoomView mRoomView{ mRoom };
+		RoomView mRoomView;
 
 		std::shared_ptr<Property<AbsorptionCoeffs>> mCustomMaterialAbsorption;
 		std::shared_ptr<bool> mLinkMaterialEditBands;
 
 		std::shared_ptr<DirectSoundModel> mDirectSoundModel;
 		std::shared_ptr<LateReverbModel> mLateReverbModel;
-
+		
 		LateReverbGUI mLateReverbGUI;
 
 		ERTracer mERTracer;

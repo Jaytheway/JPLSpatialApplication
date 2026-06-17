@@ -22,6 +22,8 @@
 #include "Model/RoomModel.h"
 #include "ImGui/ImGui.h"
 
+#include "GUI/VBAPVisualization.h"
+
 #include <optional>
 
 struct ImRect;
@@ -44,8 +46,7 @@ namespace JPL
 		};
 
 	public:
-		explicit RoomView(const std::shared_ptr<RoomModel>& model);
-		void OnStart();
+		RoomView(const std::shared_ptr<RoomModel>& model, const std::weak_ptr<const VBAPVisualization>& vbapVisualization);
 		void DrawProperties();
 
 		// @returns draw list of the canvas, in case something needs to be drawn on top
@@ -58,6 +59,8 @@ namespace JPL
 		void DrawListener();
 		void DrawSource();
 
+		void DrawVBAPPoints(const ImVec2& position);
+
 		static bool DrawObjectCircle(const char* stringId,
 									 ImVec2& objectPosition,
 									 float radiusPx,
@@ -69,6 +72,7 @@ namespace JPL
 
 	private:
 		std::shared_ptr<RoomModel> mModel;
+		std::weak_ptr<const VBAPVisualization> mVBAPVis;
 
 		Listener mListener;
 		Source mSource;
