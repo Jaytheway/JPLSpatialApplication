@@ -55,7 +55,7 @@ namespace JPL::GUI
 			{
 				if (ImGui::BeginPopup(popupIDStr, popupFlags))
 				{
-					if (ImGui::Button("Display Spectrogram"))
+					if (ImGuiEx::Button("Display Spectrogram"))
 						SetMode(EAudioPreviewMode::Spectrogram);
 
 					//ImGui::Separator();
@@ -74,7 +74,7 @@ namespace JPL::GUI
 			{
 				if (ImGui::BeginPopup(popupIDStr, popupFlags))
 				{
-					if (ImGui::Button("Display Waveform"))
+					if (ImGuiEx::Button("Display Waveform"))
 						SetMode(EAudioPreviewMode::Waveform);
 
 					ImGui::Separator();
