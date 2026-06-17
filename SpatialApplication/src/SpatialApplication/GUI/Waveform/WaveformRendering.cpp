@@ -105,11 +105,6 @@ namespace JPL::GUI
 		// TODO: we may want to also update the waveform if the display width changes
 		mWaveformWidthPx = static_cast<int>(plotSpace.x);
 
-		if (mChannelData.empty() and not bUpdatingWaveform)
-		{
-			return false;
-		}
-
 		// Use unique item ID
 		const ImGuiID itemID = ImGui::GetCurrentWindow()->GetID(itemId);
 
@@ -120,6 +115,16 @@ namespace JPL::GUI
 		if (not ImGui::ItemAdd(itemBB, itemID))
 			return false;
 
+		// Draw border outline
+		auto* drawList = ImGui::GetWindowDrawList();
+		drawList->AddRect(bbMin, bbMax, ImGui::GetColorU32(ImGuiCol_Border), ImGui::GetStyle().FrameRounding);
+
+
+		if (mChannelData.empty() and not bUpdatingWaveform)
+		{
+			// The waveform item exists, just empty
+			return true;
+		}
 
 #if 0	// Enable to play around with waveform colour
 		JPL::ImGuiEx::Window("Waveform Col", [&]
