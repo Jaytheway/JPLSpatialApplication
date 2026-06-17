@@ -453,22 +453,6 @@ namespace JPL
         ImVec2 sourceMax = sourcePosAbs + sourceSize;
         ImRect sourceBounds = { sourceMin, sourceMax };
 
-        /* ImGuiID sourceID = ImGui::GetID("Source");
-         if (!ImGui::ItemAdd(sourceBounds, sourceID))
-             return;
-
-         ImVec2 mousePos = ImGui::GetMousePos();
-         static ImVec2 mouseClickOffset;
-         bool hovered = false, held = false, pressed = false;
-         if (ImGui::ButtonBehavior(sourceBounds, sourceID, &hovered, &held, ImGuiButtonFlags_PressedOnClick))
-         {
-             pressed = true;
-             mouseClickOffset = mousePos - sourcePosAbs;
-         }*/
-
-         //ImU32 colour = pressed || held ? IM_COL32(100, 30, 255, 255) : IM_COL32(100, 30, 220, 255);
-         //ImU32 colourHovered = IM_COL32_WHITE;
-
         static constexpr ImU32 colours[]
         {
             //'b', 'r', 'y', 'g', 'c', 'm', 'k'
@@ -490,7 +474,6 @@ namespace JPL
             IM_COL32(255, 255, 255, 255),
             IM_COL32(255, 255, 255, 255)
         };
-        //ImU32 colour = IM_COL32(255, 200, 30, 255);
 
         // Hover outline
         //if (hovered || held)
