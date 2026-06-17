@@ -42,6 +42,7 @@ namespace JPL::GUI
 			inline constexpr ImU32 Text = IM_COL32(220, 220, 220, 255);
 			inline constexpr ImU32 TextBrighter = IM_COL32(255, 255, 255, 255);
 			inline constexpr ImU32 TextDarker = IM_COL32(128, 128, 128, 255);
+			inline constexpr ImU32 TextSlightlyDarker = IM_COL32(174, 174, 174, 255);
 
 			inline constexpr ImU32 Highlight = IM_COL32(91, 195, 239, 255);
 			inline constexpr ImU32 Selected = IM_COL32(235, 186, 97, 255);
