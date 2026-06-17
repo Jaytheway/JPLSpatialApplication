@@ -22,6 +22,7 @@
 #include "Model/VBAPVisualizationModel.h"
 #include "Processing/Panner.h"
 #include "Utility/MVCUtils.h"
+#include "ImGui/ImGui.h"
 
 #include <JPLSpatial/ChannelMap.h>
 #include <JPLSpatial/Math/MinimalVec3.h>
@@ -79,12 +80,15 @@ namespace JPL
 
 		void Draw();
 
+		void DrawDirectionPoints(ImDrawList* drawList, const ImRect& bounds) const;
+
 	private:
-		static void DrawPoints(std::span<const GroupedPoint> points);
 		static void DrawSpeakers(std::span<const IntencityPoint> points, uint32_t lfeIndex);
 		static void DrawPointsTransformed(std::span<const GroupedPoint> points, const JPL::Basis<JPL::MinimalVec3>& rotation);
 		static void DrawSpeakersTransformed(std::span<const IntencityPoint> points, const JPL::Basis<JPL::MinimalVec3>& rotation);
-		static void DrawPoint(const GroupedPoint& point, float brightnessMultiplier = 1.0f);
+		
+		static void DrawPoint(ImDrawList* drawList, ImRect bounds, const GroupedPoint& point, float brightnessMultiplier = 1.0f);
+
 		static void DrawSpeaker(const IntencityPoint& point, float brightnessMultiplier = 1.0f);
 
 		virtual void OnChange(JPL::GenericChangeBroadcaster*) final;

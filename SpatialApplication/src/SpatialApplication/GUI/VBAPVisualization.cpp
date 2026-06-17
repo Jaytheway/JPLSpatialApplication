@@ -23,7 +23,6 @@
 #include <JPLSpatial/Panning/VBAPanning2D.h>
 #include <JPLSpatial/Math/MinimalQuat.h>
 
-#include "ImGui/ImGui.h"
 #include "GUI/PropertyWidgets.h"
 
 #include <algorithm>
@@ -303,8 +302,8 @@ namespace JPL
         {
             DrawSquareCanvas("Top-down View", canvasSize, [&]
             {
-
-                DrawPoints(mChannelPoints.Points);
+                const ImRect bounds = ImGui::GetCurrentWindow()->Rect();
+                DrawDirectionPoints(ImGui::GetWindowDrawList(), bounds);
 
                 if (bDrawSpeakers)
                 {
@@ -337,19 +336,19 @@ namespace JPL
         });
     }
 
+    void VBAPVisualization::DrawDirectionPoints(ImDrawList* drawList, const ImRect& bounds) const
+    {
+        for (const GroupedPoint& point : mChannelPoints.Points)
+        {
+            DrawPoint(drawList, bounds, point);
+        }
+    }
+
     static ImVec2 GetPositionOnCanvas(const ImRect& bounds, ImVec2 direction)
     {
         direction += ImVec2(1, 1);
         direction *= ImVec2(0.5f, 0.5f);
         return direction * bounds.GetSize() + bounds.Min;
-    }
-
-    void VBAPVisualization::DrawPoints(std::span<const GroupedPoint> points)
-    {
-        for (const GroupedPoint& point : points)
-        {
-            DrawPoint(point);
-        }
     }
 
     void VBAPVisualization::DrawSpeakers(std::span<const IntencityPoint> points, uint32_t lfeIndex)
@@ -391,6 +390,9 @@ namespace JPL
             point.Depth = JPL::Math::FMA(-point.Point.X, 0.5f, 0.5f);
             point.Point = rotation.Transform(point.Point);
         }
+
+        auto* drawList = ImGui::GetWindowDrawList();
+        const ImRect bounds = ImGui::GetCurrentWindow()->Rect();
 
         // Draw points, dimming the ones farther away from the camera
         for (const PointWithDepth& point : pointsTransformed)
@@ -436,12 +438,14 @@ namespace JPL
         }
     }
 
-    void VBAPVisualization::DrawPoint(const GroupedPoint& point, float brightnessMultiplier)
+    void VBAPVisualization::DrawPoint(ImDrawList* drawList, ImRect bounds, const GroupedPoint& point, float brightnessMultiplier)
     {
+        if (not drawList)
+            return;
+
         static constexpr float pointRadius = 5.0f;
         static constexpr float margin = pointRadius * 2.0f;
 
-        ImRect bounds = ImGui::GetCurrentWindow()->Rect();
         bounds.Expand(bounds.GetWidth() >= margin ? -margin : 0.0f);
 
         ImVec2 center = bounds.GetCenter();
@@ -486,7 +490,6 @@ namespace JPL
         colour.y *= brightnessMultiplier;
         colour.z *= brightnessMultiplier;
 
-        auto* drawList = ImGui::GetWindowDrawList();
         drawList->AddCircleFilled(sourcePosAbs, pointRadius, ImGui::ColorConvertFloat4ToU32(colour));
     }
 
