@@ -44,14 +44,11 @@ namespace JPL
 	LateReverbGUI::LateReverbGUI(std::shared_ptr<LateReverbModel> model)
 		: mModel(model)
 		, mIRReverb(std::make_shared<ReverbBus>())
-		, mIRAudioPreview(mIRWaveformSource)
+		, mIRAudioPreview(mIRWaveformSource, GUI::EAudioPreviewMode::Waveform) // Display spectrogram by default
 		, bUpdatingWaveform(false)
 		, bShowIRAudioPreview(std::make_shared<bool>(false))
 	{
 		JPL_ASSERT(model);
-
-		// Display spectrogram by default
-		mIRAudioPreview.SetMode(GUI::EAudioPreviewMode::Waveform);
 
 		mIRWaveformSource.AddListener(this);
 
