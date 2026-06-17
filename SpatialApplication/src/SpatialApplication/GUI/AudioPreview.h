@@ -37,7 +37,7 @@ namespace JPL::GUI
 	class AudioPreview
 	{
 	public:
-		explicit AudioPreview(WaveformDataSource& dataSource);
+		AudioPreview(WaveformDataSource& dataSource, EAudioPreviewMode mode = EAudioPreviewMode::Spectrogram);
 		~AudioPreview() noexcept = default;
 
 		// @returns true if the preview area was left-clicked

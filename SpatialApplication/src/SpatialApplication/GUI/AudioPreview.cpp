@@ -24,11 +24,11 @@
 
 namespace JPL::GUI
 {
-	AudioPreview::AudioPreview(WaveformDataSource& dataSource)
+	AudioPreview::AudioPreview(WaveformDataSource& dataSource, EAudioPreviewMode mode)
 		: mDataSource(dataSource)
 		, mWaveform(dataSource)
 		, mSpectrogram(dataSource)
-		, mMode(std::make_shared<EAudioPreviewMode>(EAudioPreviewMode::Spectrogram))
+		, mMode(std::make_shared<EAudioPreviewMode>(mode))
 	{
 	}
 
