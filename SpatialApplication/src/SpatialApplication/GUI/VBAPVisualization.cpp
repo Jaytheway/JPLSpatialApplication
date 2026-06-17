@@ -398,7 +398,7 @@ namespace JPL
         for (const PointWithDepth& point : pointsTransformed)
         {
             const float brightnessMultiplier = JPL::Math::FMA(point.Depth, 0.5f, 0.5f);
-            DrawPoint(point, brightnessMultiplier);
+            DrawPoint(drawList, bounds, point, brightnessMultiplier);
         }
     }
 
