@@ -31,4 +31,29 @@ namespace JPL::ImGuiEx
 	// Draw text cetnered within rectangle [boundsMin, boundsMax]
 	void DrawTextCentered(ImDrawList& drawList, const ImVec2& boundsMin, const ImVec2& boundsMax, const char* text, ImU32 colour = ImGui::GetColorU32(ImGuiCol_Text));
 
+	//======================================================================
+	/// Shadow Edge
+
+	enum class EShadowEdge
+	{
+		Left, Right, Top, Bottom,
+	};
+
+	struct ShadowEdgeStyle
+	{
+		float ShadowSize = 24.0f;
+		float EdgeFeather = 6.0f;
+		float FalloffPower = 2.0f; // 1.0f - soft; 2.0f - tighter near edge; 0.5f - longer, mistier shadow
+		ImU32 Colour = IM_COL32(0, 0, 0, 80);
+		int AlongSegments = 8;
+		int AcrossSegments = 8;
+	};
+
+	void DrawShadowEdge(ImDrawList& drawList, ImVec2 pMin, ImVec2 pMax, EShadowEdge edge, const ShadowEdgeStyle& style = {});
+	
+	void DrawLeftShadowEdge(ImDrawList& drawList, ImVec2 pMin, ImVec2 pMax, const ShadowEdgeStyle& style = {});
+	void DrawRightShadowEdge(ImDrawList& drawList, ImVec2 pMin, ImVec2 pMax, const ShadowEdgeStyle& style = {});
+	void DrawTopShadowEdge(ImDrawList& drawList, ImVec2 pMin, ImVec2 pMax, const ShadowEdgeStyle& style = {});
+	void DrawBottomShadowEdge(ImDrawList& drawList, ImVec2 pMin, ImVec2 pMax, const ShadowEdgeStyle& style = {});
+
 } // namespace JPL::ImGuiEx
