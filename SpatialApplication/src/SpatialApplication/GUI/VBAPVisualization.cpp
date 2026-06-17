@@ -545,8 +545,10 @@ namespace JPL
 
         if (not mPanner->Initialize(channelSet.Layout))
         {
-            // TODO: report error
             mPanner = nullptr;
+
+            Log::Error("VBAPVisualization: OnTargetChannelsChanged: Failed to initialize panner for layout '{}'",
+                       channelSet.Name);
         }
 
         mTargetChannelSet = channelSet;
@@ -555,7 +557,12 @@ namespace JPL
         if (mPanner && mSourceChannelSet.Layout.IsValid())
         {
             mSourceLayout = mPanner->InitializeSourceLayout(mSourceChannelSet.Layout);
-            // TODO: report error if failed
+
+            if (not mSourceLayout)
+            {
+                Log::Error("VBAPVisualization: OnTargetChannelsChanged: Failed to initialize source layout '{}' for panner layout '{}'",
+                           mSourceChannelSet.Name, channelSet.Name);
+            }
         }
 
         mLFEIndex = mTargetChannelSet.Layout.GetChannelIndex(JPL::EChannel::LFE);
@@ -577,7 +584,11 @@ namespace JPL
             {
                 mSourceChannelSet = channelSet;
             }
-            // TODO: report error if failed
+            else
+            {
+                Log::Error("VBAPVisualization: OnSourceChannelsChanged: Failed to initialize source layout '{}' for panner layout '{}'",
+                           channelSet.Name, mTargetChannelSet.Name);
+            }
         }
         else
         {
