@@ -89,7 +89,6 @@ namespace JPL
 		, mLateReverbGUI(mLateReverbModel)
 	{
 		JPL_ASSERT(directSoundModel);
-		mRoom.DirectSound = mDirectSoundModel;
 		mRoom->DirectSound = mDirectSoundModel;
 
 		mLinkMaterialEditBands = std::make_shared<bool>(false);
