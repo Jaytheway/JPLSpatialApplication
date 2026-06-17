@@ -51,18 +51,20 @@ namespace JPL
 
 		const std::vector<std::filesystem::path>& GetFiles() const { return mFiles; }
 		const std::filesystem::path& GetSelectedFile() const { return mSelectedFile->Get(); }
-		const std::filesystem::path& GetSelectedFileAbs() const { return mPath / mSelectedFile->Get(); }
 
 		void SetDirectory(const std::filesystem::path& newDirectory);
-		bool SetSelectedFile(const std::filesystem::path& file);
+		bool SetSelectedFile(const std::filesystem::path& fileRelative);
 
 	private:
 		inline void OnChange(const choc::file::Watcher::Event& event) { ParseDirectory(); }
 		void ParseDirectory();
 
-		void CommitSelectedFileChange(const std::filesystem::path& newSelectedFile);
+		bool CurrentDirectoryContains(const std::filesystem::path& absolutePath) const;
+
+		void CommitSelectedFileChange(const std::filesystem::path& newSelectedFileAbs);
 
 	private:
+		// Absolute path to selected file
 		std::shared_ptr<Property<std::filesystem::path>> mSelectedFile;
 
 		std::filesystem::path mPath; // directory path

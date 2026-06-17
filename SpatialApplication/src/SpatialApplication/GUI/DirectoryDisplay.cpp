@@ -45,13 +45,32 @@ namespace JPL
 			{
 				ImGui::Spacing();
 				{
-					ScopedFont titleFont(JPL::GUI::GetBoldFont());
+					//ScopedFont titleFont(JPL::GUI::GetBoldFont());
+					ScopedColour textColour(ImGuiCol_Text, GUI::Colours::Theme::TextSlightlyDarker);
+					ScopedColour bgColour(ImGuiCol_FrameBg, IM_COL32_BLACK_TRANS);
+					ScopedColour borderColour(ImGuiCol_Border, IM_COL32_BLACK_TRANS);
 
 					// Give some space to the "Browse..." button
-					const float width = ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 4.0f - 20.0f;
-					ScopedTextWrap wrapAt(width);
+					const float width = ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 2.0f - 100.0f;
+					ScopedItemWidth itemWidth(width);
+					
+					std::string pathString = directory.GetPath().string();
+					const int flags = ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_ElideLeft;
 
-					ImGui::Text(directory.GetPath().string().c_str());
+					// Draw actual text widget
+					ImGui::InputText("##PathString", pathString.data(), pathString.size() + 1, flags);
+
+					const ImVec2 textSize = ImGui::CalcTextSize(pathString.data(), pathString.data() + pathString.size() + 1);
+
+					// Draw subtle shadow edge if the entire path string doesn't fit
+					if (textSize.x > width)
+					{
+						ImGuiEx::DrawLeftShadowEdge(
+							*ImGui::GetWindowDrawList(),
+							ImGui::GetItemRectMin(),
+							ImGui::GetItemRectMax(),
+							ShadowEdgeStyle{ .ShadowSize = 20.0f, .AcrossSegments = 6 });
+					}
 				}
 
 				ImGui::Spring();
@@ -92,14 +111,33 @@ namespace JPL
 			}, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
 
 			Layout<Separator, Spacer>();
+			{
+				// TODO: maybe wrap this into something like Layout<ShadowSeparator>, or straight to Layout<Separator>
+				const ImVec2 bbMin = ImGui::GetItemRectMin() + ImVec2(0.0f, 1.0f);
+				const ImVec2 bbMax = ImGui::GetItemRectMax() + ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 4);
+				DrawTopShadowEdge(*ImGui::GetWindowDrawList(), bbMin, bbMax,
+								  ShadowEdgeStyle{
+									  .ShadowSize = 14.0f,
+									  .FalloffPower = 3.0f,
+									  .Colour = IM_COL32(0, 0, 0, 70)});
+			}
 
 			Child("##FilesList", [&]
 			{
 				const auto& selectedFile = directory.GetSelectedFile();
+				const auto selectedRelative = std::filesystem::relative(selectedFile, directory.GetPath());
+
+				// ImGui extends item size by about half spacing,
+				// which can cause first item's upper extent to be clipped
+				ShiftCursorY(ImGui::GetStyle().ItemSpacing.y * 0.5f);
+
+				// ImGui ignores frame padding for ImGui::Selectable
+				// so we add it ourselves
+				ImGui::Indent(ImGui::GetStyle().FramePadding.x);
 
 				auto drawEntry = [&](const std::filesystem::path& path)
 				{
-					bool selected = path == selectedFile;
+					bool selected = path == selectedRelative;
 
 					if (ImGui::Selectable(path.string().c_str(), &selected))
 						directory.SetSelectedFile(path);
@@ -121,11 +159,9 @@ namespace JPL
 
 		mSelectedFile->AddChangeCallback(this, [](Directory* self, const std::filesystem::path& selectedFile)
 		{
-			self->Broadcast<&ChangeListenerType::OnSelectedFilePathChanged>(
-				selectedFile.empty()
-				? selectedFile
-				: self->mPath / selectedFile
-			);
+			// If directory was changed, don't accept file it doesn't contain
+			if (selectedFile.empty() or self->CurrentDirectoryContains(selectedFile))
+				self->Broadcast<&ChangeListenerType::OnSelectedFilePathChanged>(selectedFile);
 		});
 	}
 
@@ -148,22 +184,24 @@ namespace JPL
 		ParseDirectory();
 	}
 
-	bool Directory::SetSelectedFile(const std::filesystem::path& file)
+	bool Directory::SetSelectedFile(const std::filesystem::path& fileRelative)
 	{
 		if (mPath.empty() or not JPL_ENSURE(mSelectedFile)) [[unlikely]]
 			return false;
 
-		if (file == mSelectedFile->Get())
+		auto fileAbs = mPath / fileRelative;
+
+		if (fileAbs == mSelectedFile->Get())
 			return false;
 
-		if (file.empty()) [[unlikely]]
+		if (fileRelative.empty()) [[unlikely]]
 		{
 			CommitSelectedFileChange({});
 			return true;
 		}
-		else if (std::find(mFiles.begin(), mFiles.end(), file) != mFiles.end()) [[likely]]
+		else if (std::find(mFiles.begin(), mFiles.end(), fileRelative) != mFiles.end()) [[likely]]
 		{
-			CommitSelectedFileChange(file);
+			CommitSelectedFileChange(fileAbs);
 			return true;
 		}
 		else [[unlikely]]
@@ -207,7 +245,7 @@ namespace JPL
 		if (not oldPath.empty())
 		{
 			// Clear selected file if it's not in the new directory
-			if (std::find(mFiles.begin(), mFiles.end(), oldPath.filename()) == mFiles.end())
+			if (not CurrentDirectoryContains(oldPath))
 			{
 				// Selected file change is not undoable
 				// when triggered by directory change
@@ -216,11 +254,17 @@ namespace JPL
 		}
 	}
 
-	void Directory::CommitSelectedFileChange(const std::filesystem::path& newSelectedFile)
+	bool Directory::CurrentDirectoryContains(const std::filesystem::path& absolutePath) const
+	{
+		auto relative = std::filesystem::relative(absolutePath, mPath);
+		return std::find(mFiles.begin(), mFiles.end(), relative) != mFiles.end();
+	}
+
+	void Directory::CommitSelectedFileChange(const std::filesystem::path& newSelectedFileAbs)
 	{
 		const std::filesystem::path oldPath = mSelectedFile->Get();
 
-		mSelectedFile->Set(newSelectedFile);
+		mSelectedFile->Set(newSelectedFileAbs);
 
 		JPLSpatialApplication::GetCommandHistory().PropertyEdited(Undoable(mSelectedFile), OldValue(oldPath), "Selected Source");
 	}
