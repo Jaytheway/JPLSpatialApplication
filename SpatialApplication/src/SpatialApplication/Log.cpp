@@ -59,10 +59,17 @@ namespace JPL
 
     moodycamel::ConsumerToken* gLogConsumerToken = nullptr;
 
-	void Log::Init()
-	{
-        if (JPL_ENSURE(gLogConsumerToken == nullptr))
-            gLogConsumerToken = new moodycamel::ConsumerToken(sQueue);
+    void Log::Init()
+    {
+        if (gLogConsumerToken != nullptr)
+        {
+            if (sLogger != nullptr)
+                Log::Error("Log: Trying to initialize Log which was already initialized!");
+
+            return;
+        }
+
+        gLogConsumerToken = new moodycamel::ConsumerToken(sQueue);
 
         // Using single-theraded sink, since we use our own buffer and mutex
         auto sink = std::make_shared<spdlog::sinks::callback_sink_st>(&LogCallback);
