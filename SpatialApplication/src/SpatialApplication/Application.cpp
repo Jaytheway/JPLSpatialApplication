@@ -269,7 +269,8 @@ namespace JPL
 } // namespace JPL
 
 
-static void JPLSpatialTrace(const char* msg)
+// Overrides both, JPL Spatial and MiniaudioCpp trace callback
+static void JPLTrace(const char* msg)
 {
 	JPL::ELogLevel logLevel = JPL::ELogLevel::Trace;
 
@@ -285,12 +286,13 @@ static void JPLSpatialTrace(const char* msg)
 	else if (contains(message, "Error:"))
 		logLevel = JPL::ELogLevel::Error;
 
-	JPL::Log::Print(logLevel, "JPL Spatial: {}", message);
+	JPL::Log::Print(logLevel, "JPL: {}", message);
 }
-JPL::TraceFunction JPL::SpatialTrace = JPLSpatialTrace;
+JPL::TraceFunction JPL::SpatialTrace = JPLTrace;
 
+// Overrides both, JPL Spatial and MiniaudioCpp assertion failed callback
 #if defined(JPL_ENABLE_ASSERTS) || defined(JPL_ENABLE_ENSURE)
-static bool JPLSpatialAssertionFailedCb(const char* inExpression, const char* inMessage, const std::source_location location)
+static bool JPLAssertionFailedCb(const char* inExpression, const char* inMessage, const std::source_location location)
 {
 	// Print assertion details to the log
 	const auto messageString = std::format(
@@ -310,7 +312,7 @@ static bool JPLSpatialAssertionFailedCb(const char* inExpression, const char* in
 
 	return true; // Trigger breakpoint
 };
-JPL::AssertFailedFunction JPL::AssertFailed = JPLSpatialAssertionFailedCb;
+JPL::AssertFailedFunction JPL::AssertFailed = JPLAssertionFailedCb;
 #endif
 
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
