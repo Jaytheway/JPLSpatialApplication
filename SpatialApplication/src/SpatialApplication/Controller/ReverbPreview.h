@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
+#include "CoreInclude.h"
+
 #include <MiniaudioCpp/MiniaudioWrappers.h>
 
 #include "Model/LateReverbModel.h"

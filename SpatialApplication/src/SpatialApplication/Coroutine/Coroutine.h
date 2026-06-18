@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <JPLSpatial/Core.h>
+#include "CoreInclude.h"
 
 #include <algorithm>
 #include <concepts>

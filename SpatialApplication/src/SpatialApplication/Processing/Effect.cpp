@@ -19,9 +19,6 @@
 
 #include "Effect.h"
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
-
 #include <utility>
 
 namespace JPL

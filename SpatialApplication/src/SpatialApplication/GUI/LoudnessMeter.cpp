@@ -19,8 +19,6 @@
 
 #include "LoudnessMeter.h"
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
 #include <JPLSpatial/Containers/StaticArray.h>
 
 #include "ImGui/ImGui.h"

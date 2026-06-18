@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "CoreInclude.h"
 #include "Utility/MVCUtils.h"
 
 #include "ImGui/ImGui.h"

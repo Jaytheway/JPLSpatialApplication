@@ -33,6 +33,9 @@ function(fetch_JPLSpatial)
 
         # Pass JPL Spatial's core include path to the parent scope so other dependencies can use it
         set(JPL_CORE_INCLUDE_PATH "${JPL_SPATIAL_DIR}/Spatialization/include" PARENT_SCOPE)
+
+        # Enable tagged logging in JPL Spatial so we can route it to the right log channel in the application
+        target_compile_definitions(JPLSpatial PUBLIC "JPL_TAGGED_LOGGING")
     endif()
 endfunction()
 
@@ -46,6 +49,10 @@ function(fetch_MiniaudioCpp JPL_CORE_INCLUDE_PATH)
            "JPL_CORE_INCLUDE=\"${JPL_CORE_INCLUDE_PATH}/JPLSpatial/Core.h\""
            "JPL_ERROR_REPORTING_INCLUDE=\"${JPL_CORE_INCLUDE_PATH}/JPLSpatial/ErrorReporting.h\""
         )
+
+        # Enable tagged logging in MiniaudioCpp. Since we do this in JPL Spatial,
+        # we don't want MiniaudioCpp to reference undefined trace functions.
+        target_compile_definitions(MiniaudioCpp PUBLIC "JPL_TAGGED_LOGGING")
     endif()
 endfunction()
 

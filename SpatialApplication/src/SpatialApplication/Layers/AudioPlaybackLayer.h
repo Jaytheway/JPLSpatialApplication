@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include "CoreInclude.h"
+
 #include <Walnut/Layer.h>
 
 #include "ImGui/ImGui.h"

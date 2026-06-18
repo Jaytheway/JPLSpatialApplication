@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "CoreInclude.h"
 #include "Controller/AudioPlayer.h"
 #include "GUI/AudioPreview.h"
 #include "GUI/Waveform/WaveformRendering.h"

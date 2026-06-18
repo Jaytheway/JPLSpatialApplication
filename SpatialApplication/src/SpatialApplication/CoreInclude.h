@@ -1,12 +1,12 @@
-//
+﻿//
 //      ██╗██████╗     ██╗     ██╗██████╗ ███████╗
 //      ██║██╔══██╗    ██║     ██║██╔══██╗██╔════╝		** JPL Spatial Application **
 //      ██║██████╔╝    ██║     ██║██████╔╝███████╗
-// ██   ██║██╔═══╝     ██║     ██║██╔══██╗╚════██║		https://github.com/Jaytheway/JPLSpatial
+// ██   ██║██╔═══╝     ██║     ██║██╔══██╗╚════██║		https://github.com/Jaytheway/JPLSpatialApplication
 // ╚█████╔╝██║         ███████╗██║██████╔╝███████║
 //  ╚════╝ ╚═╝         ╚══════╝╚═╝╚═════╝ ╚══════╝
 //
-//   Copyright Jaroslav Pevno, JPL Spatial Application is offered under the terms of the ISC license:
+//   Copyright Jaroslav Pevno 2026, JPL Spatial Application is offered under the terms of the ISC license:
 //
 //   Permission to use, copy, modify, and/or distribute this software for any purpose with or
 //   without fee is hereby granted, provided that the above copyright notice and this permission
@@ -19,40 +19,9 @@
 
 #pragma once
 
-#include "CoreInclude.h"
+#include <JPLSpatial/Core.h>
+#include <JPLSpatial/ErrorReporting.h>
 
-#include <span>
-#include <vector>
+#include "Log.h"
+#include "LogFormatters.h"
 
-namespace JPL
-{
-	class LoudnessMeter
-	{
-	public:
-		LoudnessMeter() = default;
-		~LoudnessMeter() = default;
-
-		struct Levels
-		{
-			float Peak;
-			float RMS;
-		};
-
-		void SetNumberOfChannels(uint32_t numberOfChannels);
-		void SubmitLevels(std::span<const Levels> levelsNormalized);
-		void SubmitLevels(std::span<const float> peak, std::span<const float> rms);
-		void OnRender(float deltaTime);
-
-	private:
-		uint32_t mNumberOfChannels = 0;
-		std::vector<Levels> mLevels;
-		std::vector<Levels> mPrevLevels;
-
-		const float mFallOffTime = 2.0f;
-		const float mPeakHoldTime = 1.0f;
-		std::vector<float> mPeakHoldTicks;
-		std::vector<float> m_PeakHoldLevels;
-
-		const float mMinusInfinity = -100.0f;
-	};
-} // namespace JPL

@@ -23,9 +23,6 @@
 #include "Controller/AudioPlayer.h"
 #include "ImGui/ImGui.h"
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
-
 #include <ImGuiFileDialog.h>
 
 #include <algorithm>

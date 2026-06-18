@@ -26,8 +26,6 @@
 #include "Walnut/EntryPoint.h"
 #include "Walnut/Image.h"
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
 #include <MiniaudioCpp/MiniaudioWrappers.h>
 
 #include "GUI/DirectoryDisplay.h"
@@ -270,25 +268,52 @@ namespace JPL
 
 
 // Overrides both, JPL Spatial and MiniaudioCpp trace callback
-static void JPLTrace(const char* msg)
+template<JPL::ELogLevel LogLevel>
+static void JPLLog(std::string_view tag, std::string_view message)
 {
-	JPL::ELogLevel logLevel = JPL::ELogLevel::Trace;
-
-	std::string_view message(msg);
-
-	auto contains = [](std::string_view text, std::string_view string)
+	if (tag == "miniaudio")
 	{
-		return text.find(string) != std::string::npos;
-	};
+		// Parse logs comming from miniaudio, formatted by MiniaudioCpp
 
-	if (contains(message, "Info:"))
-		logLevel = JPL::ELogLevel::Info;
-	else if (contains(message, "Error:"))
-		logLevel = JPL::ELogLevel::Error;
+		//! Note: we may or may not want to print log level in the log,
+		//! for now leaving it in to know what to disable in GUI
+		auto trimMessage = [](std::string_view message, int miniaudioLogLevel)
+		{
+#if 0
+			std::string_view maLL = ma_log_level_to_string(miniaudioLogLevel);
+			message.remove_prefix(maLL.length());
+			if (message.starts_with(": "))
+				message.remove_prefix(2);
+#endif
+			return message;
+		};
 
-	JPL::Log::Print(logLevel, "JPL: {}", message);
+		if (message.starts_with(ma_log_level_to_string(MA_LOG_LEVEL_DEBUG)))
+		{
+			JPL::Log::Print(JPL::ELogLevel::Debug, "JPL: miniaudio: {}", trimMessage(message, MA_LOG_LEVEL_DEBUG));
+		}
+		else if (message.starts_with(ma_log_level_to_string(MA_LOG_LEVEL_INFO)))
+		{
+			JPL::Log::Print(JPL::ELogLevel::Trace, "JPL: miniaudio: {}", trimMessage(message, MA_LOG_LEVEL_INFO)); // miniaudio info -> trace
+		}
+		else if (message.starts_with(ma_log_level_to_string(MA_LOG_LEVEL_WARNING)))
+		{
+			JPL::Log::Print(JPL::ELogLevel::Warn, "JPL: miniaudio: {}", trimMessage(message, MA_LOG_LEVEL_WARNING));
+		}
+		else
+		{
+			JPL::Log::Print(JPL::ELogLevel::Error, "JPL: miniaudio: {}", trimMessage(message, MA_LOG_LEVEL_ERROR));
+		}
+	}
+	else
+	{
+		JPL::Log::Print(LogLevel, "JPL: {}: {}", tag, message);
+	}
 }
-JPL::TraceFunction JPL::SpatialTrace = JPLTrace;
+JPL::TaggedTraceFunction JPL::JPLTraceTaggedTrace = JPLLog<JPL::ELogLevel::Trace>;
+JPL::TaggedTraceFunction JPL::JPLTraceTaggedInfo = JPLLog<JPL::ELogLevel::Info>;
+JPL::TaggedTraceFunction JPL::JPLTraceTaggedWarn = JPLLog<JPL::ELogLevel::Warn>;
+JPL::TaggedTraceFunction JPL::JPLTraceTaggedError = JPLLog<JPL::ELogLevel::Error>;
 
 // Overrides both, JPL Spatial and MiniaudioCpp assertion failed callback
 #if defined(JPL_ENABLE_ASSERTS) || defined(JPL_ENABLE_ENSURE)

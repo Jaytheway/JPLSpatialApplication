@@ -19,11 +19,9 @@
 
 #pragma once
 
+#include "CoreInclude.h"
 #include "MVCUtils.h"
 #include "Log.h"
-
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
 
 #include <magic_enum/magic_enum.hpp>
 #include <magic_enum/magic_enum_iostream.hpp>

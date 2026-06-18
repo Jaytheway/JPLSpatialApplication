@@ -25,8 +25,6 @@
 #include "Utility/PerformanceMetering.h"
 #include "ImGui/ImGui.h"
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
 #include <JPLSpatial/AirAbsorption.h>
 #include <MiniaudioCpp/MiniaudioWrappers.h>
 #include <JPLSpatial/Auralization/LateReverb.h>

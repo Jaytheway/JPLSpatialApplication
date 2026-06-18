@@ -19,13 +19,12 @@
 
 #pragma once
 
-#include "LogFormatters.h"
-
 #include "spdlog/spdlog.h"
 
 #include <concurrentqueue.h>
 #include <magic_enum/magic_enum.hpp>
 
+#include <cstdint>
 #include <format>
 #include <memory>
 #include <format>
@@ -37,7 +36,7 @@ namespace JPL
 {
 	class RingBufferSink;
 
-	enum class ELogLevel : uint8
+	enum class ELogLevel : uint8_t
 	{
 		Trace = 1 << 0,
 		Debug = 1 << 1,

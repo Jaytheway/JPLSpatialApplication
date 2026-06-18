@@ -21,8 +21,6 @@
 
 #include "Systems/EventsLoop.h"
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
 #include <JPLSpatial/Math/SIMD.h>
 #include <JPLSpatial/Math/SIMDMath.h>
 

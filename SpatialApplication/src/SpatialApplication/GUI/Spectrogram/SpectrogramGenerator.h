@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
+#include "CoreInclude.h"
+
 #include <JPLSpatial/Math/SIMD.h>
 #include <JPLSpatial/Math/SIMDMath.h>
 

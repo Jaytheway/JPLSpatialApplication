@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <JPLSpatial/Core.h>
+#include "CoreInclude.h"
 
 #include "ImGui/ImGui.h"
 #include "Coroutine/Coroutine.h"

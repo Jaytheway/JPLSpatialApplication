@@ -19,9 +19,9 @@
 
 #pragma once
 
+#include "CoreInclude.h"
+
 #include "audio/choc_SampleBuffers.h"
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
 #include <JPLSpatial/Containers/StaticArray.h>
 #include <JPLSpatial/Utilities/RealtimeObject.h>
 

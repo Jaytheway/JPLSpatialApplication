@@ -23,8 +23,6 @@
 #include "GUI/PropertyWidgets.h"
 #include "Systems/EventsLoop.h"
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
 #include <JPLSpatial/Algo/Algorithm.h>
 #include <JPLSpatial/Containers/StaticArray.h>
 #include <JPLSpatial/Utilities/Variance.h>

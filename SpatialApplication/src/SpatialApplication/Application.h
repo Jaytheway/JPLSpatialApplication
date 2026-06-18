@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "Log.h"
+#include "CoreInclude.h"
 #include "Utility/Command.h"
 
 namespace JPL

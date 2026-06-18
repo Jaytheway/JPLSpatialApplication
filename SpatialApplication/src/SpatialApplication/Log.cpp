@@ -17,7 +17,7 @@
 //   WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 //   CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-#include "Log.h"
+#include "CoreInclude.h" // contains Log.h
 
 #include <spdlog/sinks/callback_sink.h>
 

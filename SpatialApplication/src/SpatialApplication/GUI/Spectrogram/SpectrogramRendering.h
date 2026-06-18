@@ -19,13 +19,12 @@
 
 #pragma once
 
+#include "CoreInclude.h"
 #include "Coroutine/Coroutine.h"
 #include "GUI/Spectrogram/SpectrogramGenerator.h"
 #include "GUI/Waveform/WaveformDataSource.h"
 #include "Utility/MVCUtils.h"
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
 #include <JPLSpatial/Math/SIMD.h>
 #include <JPLSpatial/Memory/Memory.h>
 

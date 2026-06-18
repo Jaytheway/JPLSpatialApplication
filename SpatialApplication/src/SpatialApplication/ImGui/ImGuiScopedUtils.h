@@ -19,10 +19,8 @@
 
 #pragma once
 
+#include "CoreInclude.h"
 #include "ImGui/ImGui.h"
-
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
 
 #include <memory>
 #include <cstddef>

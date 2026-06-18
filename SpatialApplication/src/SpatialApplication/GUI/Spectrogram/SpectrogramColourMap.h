@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <JPLSpatial/Core.h>
+#include "CoreInclude.h"
 #include <JPLSpatial/Math/SIMD.h>
 
 #include <imgui.h> // IM_COL32

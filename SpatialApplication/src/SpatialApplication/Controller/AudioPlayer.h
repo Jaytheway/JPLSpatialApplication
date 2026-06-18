@@ -19,10 +19,10 @@
 
 #pragma once
 
+#include "CoreInclude.h"
+
 #include "Utility/MVCUtils.h"
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
 #include <MiniaudioCpp/MiniaudioWrappers.h>
 
 #include <filesystem>

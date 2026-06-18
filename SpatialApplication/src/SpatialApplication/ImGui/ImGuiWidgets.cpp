@@ -21,8 +21,6 @@
 
 #include "Walnut/Application.h"
 
-#include <JPLSpatial/Core.h>
-
 namespace JPL::ImGuiEx
 {
 	namespace Constant

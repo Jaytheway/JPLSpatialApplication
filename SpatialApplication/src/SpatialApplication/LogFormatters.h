@@ -19,9 +19,7 @@
 
 #pragma once
 
-#include <JPLSpatial/Core.h>
 #include <JPLSpatial/ChannelMap.h>
-
 
 namespace JPL
 {

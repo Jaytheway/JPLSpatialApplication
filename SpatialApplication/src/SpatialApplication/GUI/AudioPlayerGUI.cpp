@@ -24,9 +24,6 @@
 
 #include "fonts/FontIcons.h"
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
-
 namespace JPL
 {
 	AudioPlayerGUI::AudioPlayerGUI(AudioPlayer& audioPlayer)

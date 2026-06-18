@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "CoreInclude.h"
 #include "GUI/Waveform/WaveformRendering.h"
 #include "GUI/Spectrogram/SpectrogramRendering.h"
 

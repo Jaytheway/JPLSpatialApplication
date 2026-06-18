@@ -19,8 +19,6 @@
 
 #include "Panner.h"
 
-#include <JPLSpatial/Core.h>
-#include <JPLSpatial/ErrorReporting.h>
 #include <JPLSpatial/Panning/VBAPanning2D.h>
 #include <JPLSpatial/Panning/VBAPanning3D.h>
 #include <JPLSpatial/Math/Position.h>
