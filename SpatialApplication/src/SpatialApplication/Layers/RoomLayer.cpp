@@ -317,6 +317,16 @@ namespace JPL
 			});
 
 			Layout<Spacer>();
+			{
+				ImRect rect = GetItemRect();
+				const ImVec2 bbMin = rect.GetBL();
+				const ImVec2 bbMax = rect.GetBR() + ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 4);
+				DrawTopShadowEdge(*ImGui::GetWindowDrawList(), bbMin, bbMax,
+								  ShadowEdgeStyle{
+									  .ShadowSize = 14.0f,
+									  .FalloffPower = 3.0f,
+									  .Colour = IM_COL32(0, 0, 0, 70) });
+			}
 			
 			const ImVec2 roomCanvasPosition = ImGui::GetCursorScreenPos();
 
