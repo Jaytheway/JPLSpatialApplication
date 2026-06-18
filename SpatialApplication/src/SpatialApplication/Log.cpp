@@ -23,6 +23,62 @@
 
 #include <iterator>
 
+#define JPL_HAS_CONSOLE !WL_DIST
+
+#if JPL_HAS_CONSOLE
+#include <spdlog/sinks/ansicolor_sink.h>
+#include <choc/threading/choc_TaskThread.h>
+
+//==============================================================================
+/// Wrapper for a thread periodically pumping log messages from lock-free
+/// concurrent queue and pushing them to stdout colour sink.
+class ConsolePump
+{
+public:
+    // Receive log messages from various threads
+    void operator()(const spdlog::details::log_msg& msg)
+    {
+        if (mStdoutSink) // push message to the queue only if the pump is active
+            mQueue.enqueue(spdlog::details::log_msg_buffer{ msg });
+    }
+
+    void Start()
+    {
+        mStdoutSink = std::make_shared<spdlog::sinks::ansicolor_stdout_sink_st>();
+        mStdoutSink->set_pattern("%^[%T] %n: %v%$");
+
+        static constexpr uint32_t cPollIntervalMs = 32;
+
+        // Pump log message queue from our thread
+        mThread.start(cPollIntervalMs, [this]() mutable
+        {
+            static moodycamel::ConsumerToken consumerToken(mQueue);
+
+            spdlog::details::log_msg_buffer message;
+            while (mQueue.try_dequeue(consumerToken, message))
+                mStdoutSink->log(message);
+        });
+    }
+
+    void Stop()
+    {
+        mThread.stop();
+        mStdoutSink = nullptr;
+    }
+
+private:
+    std::shared_ptr<spdlog::sinks::ansicolor_stdout_sink_st> mStdoutSink;
+    choc::threading::TaskThread mThread;
+    
+    static constexpr std::size_t cQueueInitialSize = 512;
+    moodycamel::ConcurrentQueue<spdlog::details::log_msg_buffer> mQueue{ cQueueInitialSize };
+};
+
+ConsolePump gConsolPump;
+
+#endif // !JPL_HAS_CONSOLE
+
+//==============================================================================
 namespace JPL
 {
     ELogLevel Log::TranslateLogLevel(spdlog::level::level_enum level)
@@ -76,10 +132,22 @@ namespace JPL
 
         sLogger = std::make_shared<spdlog::logger>("JPLSpatialApplication", sink);
         sLogger->set_level(spdlog::level::trace); // receive all messages
+
+#if JPL_HAS_CONSOLE
+        auto consoleSink = std::make_shared<spdlog::sinks::callback_sink_st>([](const spdlog::details::log_msg& msg)
+        {
+            gConsolPump(msg); // simply forward the message to console pump
+        });
+        sLogger->sinks().push_back(consoleSink);
+        gConsolPump.Start();
+#endif
     }
 
     void Log::Uninit()
     {
+#if JPL_HAS_CONSOLE
+        gConsolPump.Stop();
+#endif
         sLogger.reset();
         // We don't need to call spdlog::drop_all(), Walnut does it
 
