@@ -30,13 +30,22 @@ function(fetch_JPLSpatial)
         # Remove ErrorReporting.cpp
         list(REMOVE_ITEM LIB_SOURCES "${JPL_SPATIAL_DIR}/Spatialization/src/Spatialization/ErrorReporting.cpp")
         set_target_properties(JPLSpatial PROPERTIES SOURCES "${LIB_SOURCES}")
+
+        # Pass JPL Spatial's core include path to the parent scope so other dependencies can use it
+        set(JPL_CORE_INCLUDE_PATH "${JPL_SPATIAL_DIR}/Spatialization/include" PARENT_SCOPE)
     endif()
 endfunction()
 
-function(fetch_MiniaudioCpp)
+function(fetch_MiniaudioCpp JPL_CORE_INCLUDE_PATH)
     if (NOT TARGET JPL::MiniaudioCpp)
         set(MINIAUDIOCPP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/MiniaudioCpp/MiniaudioCpp")
-        add_subdirectory("${MINIAUDIOCPP_DIR}" "${CMAKE_BINARY_DIR}/MiniaudioCpp/MiniaudioCpp")  
+        add_subdirectory("${MINIAUDIOCPP_DIR}" "${CMAKE_BINARY_DIR}/MiniaudioCpp/MiniaudioCpp")
+        
+        # Let MiniadioCpp use JPL Spatial's core includes
+        target_compile_definitions(MiniaudioCpp PRIVATE
+           "JPL_CORE_INCLUDE=\"${JPL_CORE_INCLUDE_PATH}/JPLSpatial/Core.h\""
+           "JPL_ERROR_REPORTING_INCLUDE=\"${JPL_CORE_INCLUDE_PATH}/JPLSpatial/ErrorReporting.h\""
+        )
     endif()
 endfunction()
 
@@ -192,7 +201,9 @@ function(jpl_setup_dependencie)
     fetch_JPLSpatial()
 
     # === MiniaudioCpp ===
-    fetch_MiniaudioCpp()
+    fetch_MiniaudioCpp(${JPL_CORE_INCLUDE_PATH})
+    # Pass the core include path to MiniaudioCpp
+    # so it can use JPL Spatial's error reporting implementation instead of its own
     
     # === FFTConvolver ===
     fetch_FFTConvolver()
