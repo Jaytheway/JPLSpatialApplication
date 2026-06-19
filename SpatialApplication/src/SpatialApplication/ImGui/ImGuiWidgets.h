@@ -409,13 +409,25 @@ namespace JPL::ImGuiEx
 
 		bool bModified = false;
 
+		T originalValue = v;
+
+		int flags = config.Flags;
+
+		// ImGui doesn't support this flag for input scalar natively
+		bool bTrueOnEnter = false;
+		if ((flags & ImGuiInputTextFlags_EnterReturnsTrue))
+		{
+			flags ^= ImGuiInputTextFlags_EnterReturnsTrue;
+			bTrueOnEnter = true;
+		}
+
 		if constexpr (std::same_as<T, float>)
 		{
-			bModified = ImGui::InputFloat(label, &v, config.Step, config.StepFast, config.Fmt, config.Flags);
+			bModified = ImGui::InputFloat(label, &v, config.Step, config.StepFast, config.Fmt, flags);
 		}
 		else if constexpr (std::same_as<T, double>)
 		{
-			bModified = ImGui::InputDouble(label, &v, config.Step, config.StepFast, config.Fmt, config.Flags);
+			bModified = ImGui::InputDouble(label, &v, config.Step, config.StepFast, config.Fmt, flags);
 		}
 		else
 		{
@@ -424,6 +436,12 @@ namespace JPL::ImGuiEx
 
 		if (bModified)
 		{
+			if (bTrueOnEnter and not ImGui::IsItemDeactivatedAfterEdit())
+			{
+				v = originalValue;
+				return false;
+			}
+
 			if (config.Min)
 				v = std::max(v, *config.Min);
 
