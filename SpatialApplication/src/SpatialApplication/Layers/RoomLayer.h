@@ -20,6 +20,7 @@
 #pragma once
 
 #include "CoreInclude.h"
+#include "Config.h"
 
 #include <Walnut/Layer.h>
 

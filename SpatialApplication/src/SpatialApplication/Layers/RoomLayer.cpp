@@ -19,8 +19,6 @@
 
 #include "RoomLayer.h"
 
-#include "Config.h"
-
 #include "Utility/PerformanceMetering.h"
 #include "ImGui/ImGui.h"
 #include "GUI/PropertyWidgets.h"
