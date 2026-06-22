@@ -92,8 +92,8 @@ namespace JPL
         bool Intersect(const Vec3& posA, const Vec3& posB, Intersection& outIntersection) const;
         bool IsOccluded(const Vec3&, const Vec3&) const;
         float GetMaterialFactor(int) const;
-        bool GetMaterialAbsorption(int surfaceId, EnergyBands& outAbsorption) const;
-        bool GetMaterialAbsorption(const TraceNode<Intersection>& newMaterial, EnergyBands& outAbsorption) const;
+        bool GetMaterialAbsorption(int surfaceId, EnergyBands& outAbsorptionDB) const;
+        bool GetMaterialAbsorption(const TraceNode<Intersection>& newMaterial, EnergyBands& outAbsorptionDB) const;
         Vec3 GetSourcePosition(int) const { return mListener.Position; } // we do backtracing, so these are backwards
         Vec3 GetReceiverPosition(int) const { return mSource.Position; }
         Vec3 GetListenerPosition(int) const { return mListener.Position; }

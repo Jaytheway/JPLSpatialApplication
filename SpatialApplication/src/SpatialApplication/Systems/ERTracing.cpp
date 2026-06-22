@@ -79,17 +79,17 @@ namespace JPL
 		return 0.6f; // 0 results in fully specular reflections
 	}
 
-	bool ERTracer::GetMaterialAbsorption(int surfaceId, EnergyBands& outAbsorption) const
+	bool ERTracer::GetMaterialAbsorption(int surfaceId, EnergyBands& outAbsorptionDB) const
 	{
 		JPL_ASSERT(mSurfaceMaterial != nullptr);
-		outAbsorption = mSurfaceMaterial->Coeffs;
+		outAbsorptionDB = mSurfaceMaterial->Absorption_dB;
 		return true;
 	}
 
-	bool ERTracer::GetMaterialAbsorption(const TraceNode<Intersection>& newMaterial, EnergyBands& outAbsorption) const
+	bool ERTracer::GetMaterialAbsorption(const TraceNode<Intersection>& newMaterial, EnergyBands& outAbsorptionDB) const
 	{
 		JPL_ASSERT(mSurfaceMaterial != nullptr);
-		outAbsorption = mSurfaceMaterial->Coeffs;
+		outAbsorptionDB = mSurfaceMaterial->Absorption_dB;
 		return true;
 	}
 
