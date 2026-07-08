@@ -192,9 +192,12 @@ namespace JPL
 
 	//==========================================================================
 	template<class T>
+	template<class T, class Equal = std::equal_to<T>>
 	class Property : public PropertyChangeBroadcaster<T>
 	{
 	public:
+		using EqualType = Equal;
+
 		Property() = default;
 		Property(const T& value) : mValue(value) {}
 		//Property& operator=(const T& value) { Set(newValue); }
