@@ -204,13 +204,75 @@ namespace JPL::ImGuiEx
 			drawList->AddRectFilled(rect.Min, rect.Max, fillColour, 0.0f);
 
 			const ImVec2 center = rect.GetCenter();
-			const float radius = (rect.GetWidth() * 0.5f - iconPadding);
+			const float radius = (rect.GetWidth() * 0.5f - cIconPadding);
 			const ImRect square{ center - ImVec2(radius, radius), center + ImVec2(radius, radius) };
 
-			drawList->AddLine(square.GetTL(), square.GetBR() - ImVec2(0.5f, 0.5f), iconColour, 1.5f);
-			drawList->AddLine(square.GetTR() - ImVec2(0.5f, 0.5f), square.GetBL() - ImVec2(0.0f, 1.0f), iconColour, 1.5f);
+			drawList->AddLine(square.GetTL(), square.GetBR() - ImVec2(0.5f, 0.5f), iconColour, 2.0f);
+			drawList->AddLine(square.GetTR() - ImVec2(0.5f, 0.5f), square.GetBL() - ImVec2(0.0f, 1.0f), iconColour, 2.0f);
+
+			return state.bPressed;
+		}
+	} // WindowButton
+
+	void DrawMainWindowButtons(ImVec2 titlebarMin, ImVec2 titlebarMax)
+	{
+		JPL::ImGuiEx::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+
+		const bool bIsMaximized = Walnut::Application::Get().IsMaximized();
+
+		const float buttonWidth = 36.0f;
+		const float buttonHeight = 26.0f;
+		const float buttonsStartX = titlebarMax.x - buttonWidth * 3.0f;
+		const float titlebarVerticalOffset = bIsMaximized ? 6.0f : 0.0f;
+		const ImVec2 buttonSize(buttonWidth, buttonHeight);
+
+		ImGui::SetCursorScreenPos(ImVec2(buttonsStartX, titlebarMin.y + titlebarVerticalOffset));
+
+		// Minimize Button
+		{
+			const ImVec2 pos = ImGui::GetCursorScreenPos();
+			const ImRect bb(pos, pos + buttonSize);
+
+			if (WindowButton::Minimize<WindowButton::EWindowType::Main>("Minimize", bb))
+				Walnut::Application::Get().Minimize();
+
+			ImGui::ItemSize(buttonSize);
+		}
+
+		// Maximize Button
+		{
+			const ImVec2 pos = ImGui::GetCursorScreenPos();
+			const ImRect bb(pos, pos + buttonSize);
+
+			if (WindowButton::Maximize<WindowButton::EWindowType::Main>("Maximize", bb, bIsMaximized))
+				Walnut::Application::Get().ToggleMaximize();
+			
+			ImGui::ItemSize(buttonSize);
+		}
+
+		// Close Button
+		{
+			const ImVec2 pos = ImGui::GetCursorScreenPos();
+			const ImRect bb(pos, pos + buttonSize);
+
+			if (WindowButton::Close<WindowButton::EWindowType::Main>("Close", bb))
+				Walnut::Application::Get().Close();
+
+			ImGui::ItemSize(buttonSize);
 		}
 	}
+
+	bool CloseButton(const char* id, const ImVec2& size)
+	{
+		const ImVec2 pos = ImGui::GetCursorScreenPos();
+		const ImRect bb(pos, pos + size);
+		const bool bPressed = WindowButton::Close<WindowButton::EWindowType::Regular>(id, bb);
+		ImGui::ItemSize(size);
+		return bPressed;
+	}
+
+	//==========================================================================
+	/// Icon Button
 
 	namespace IconStyle
 	{

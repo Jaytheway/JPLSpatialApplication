@@ -90,7 +90,12 @@ namespace JPL::ImGuiEx
 	bool PathButton(const char* label, ImVec2 size = ImVec2(0.0f, 0.0f));
 
 	//==========================================================================
+	/// Window Buttons
+	
 	void DrawMainWindowButtons(ImVec2 titlebarMin, ImVec2 titlebarMax);
+
+	// Render window close button
+	bool CloseButton(const char* id, const ImVec2& size);
 
 	//==========================================================================
 	/// Icon Button
