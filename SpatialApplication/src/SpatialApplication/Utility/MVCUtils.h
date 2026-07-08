@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <concepts>
 #include <iterator>
+#include <type_traits>
 #include <vector>
 
 namespace JPL
@@ -155,17 +156,30 @@ namespace JPL
 				mListeners.push_back(callback);
 		}
 
+		/// Add change callback member function of an object.
+		/// Member function can optionally take T as parameter.
 		template<auto MemberFunction, class ObjectType>
 		void AddChangeCallback(ObjectType* obj)
 		{
 			AddChangeCallback(Callback{
 				.Obj = obj,
-				.Function = [](void* obj, const T& property)
+				.Function = [](void* obj, [[maybe_unused]] const T& property)
 				{
 					ObjectType* p = static_cast<ObjectType*>(obj);
-					return (p->*MemberFunction)(property);
+
+					if constexpr (requires(ObjectType* p, const T& property)
+					{
+						std::invoke(MemberFunction, p, property);
+					})
+					{
+						std::invoke(MemberFunction, p, property);
+					}
+					else
+					{
+						std::invoke(MemberFunction, p);
+					}
 				}
-							  });
+			});
 		}
 
 		void RemoveChangeCallback(Callback callback)
