@@ -48,16 +48,19 @@ namespace JPL::ImGuiEx
 			}
 			else
 			{
-				drawList->AddRect(rect.Min, rect.Max, ImColor(60, 60, 60), rounding, 0, 1.5f);
+				const auto outlineColor = Colour::WhiteWithAlpha(42);
+				drawList->AddRect(rect.Min, rect.Max, outlineColor, rounding, 0, 1.5f);
 			}
 		}
 		else if ((flags & OutlineFlags_WhenHovered) && ImGui::IsItemHovered() && !ImGui::IsItemActive())
 		{
-			drawList->AddRect(rect.Min, rect.Max, ImColor(60, 60, 60), rounding, 0, 1.5f);
+			const auto outlineColor = Colour::WhiteWithAlpha(42);
+			drawList->AddRect(rect.Min, rect.Max, outlineColor, rounding, 0, 1.5f);
 		}
 		else if ((flags & OutlineFlags_WhenInactive) && !ImGui::IsItemHovered() && !ImGui::IsItemActive())
 		{
-			drawList->AddRect(rect.Min, rect.Max, ImColor(50, 50, 50), rounding, 0, 1.0f);
+			const auto outlineColor = Colour::WhiteWithAlpha(32);
+			drawList->AddRect(rect.Min, rect.Max, outlineColor, rounding, 0, 1.0f);
 		}
 	}
 
@@ -111,17 +114,17 @@ namespace JPL::ImGuiEx
 			}
 			else
 			{
-				outlineColor = IM_COL32(60, 60, 60, 255);
+				outlineColor = Colour::WhiteWithAlpha(42);
 			}
 		}
 		else if ((flags & OutlineFlags_WhenHovered) && wasHovered && not wasActive)
 		{
-			outlineColor = IM_COL32(60, 60, 60, 255);
+			outlineColor = Colour::WhiteWithAlpha(42);
 		}
 		else if ((flags & OutlineFlags_WhenInactive) && not wasHovered && not wasActive)
 		{
 
-			outlineColor = IM_COL32(50, 50, 50, 255);
+			outlineColor = Colour::WhiteWithAlpha(32);
 		}
 
 		if (outlineColor != ImU32(0u))
