@@ -63,7 +63,7 @@ namespace JPL
 
 		/// Optionally print state of an undoable command
 		/// @returns true, if something was printed to the output stream
-		virtual bool PrintTo(std::ostream& output) const { return false; };
+		virtual bool PrintTo(std::ostream& output) const { output << GetName(); return true; };
 	};
 
 	//======================================================================
@@ -316,16 +316,16 @@ namespace JPL
 	{
 		mPrintBuffer.str(""); // clear buffer
 		mPrintBuffer.clear();
-		command.PrintTo(mPrintBuffer);
-		Log::Trace("Undo: {}", mPrintBuffer.view());
+		if (command.PrintTo(mPrintBuffer));
+			Log::Trace("Undo: {}", mPrintBuffer.view());
 	}
 
-	inline void JPL::CommandHistory::PrintRedo(IUndoableCommand& command)
+	inline void CommandHistory::PrintRedo(IUndoableCommand& command)
 	{
 		mPrintBuffer.str("");
 		mPrintBuffer.clear();
-		command.PrintTo(mPrintBuffer);
-		Log::Trace("Redo: {}", mPrintBuffer.view());
+		if (command.PrintTo(mPrintBuffer))
+			Log::Trace("Redo: {}", mPrintBuffer.view());
 	}
 	
 	//======================================================================
