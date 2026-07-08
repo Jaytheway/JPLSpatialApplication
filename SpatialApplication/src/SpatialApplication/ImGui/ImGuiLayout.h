@@ -59,6 +59,9 @@ namespace JPL::ImGuiEx
         LayoutVertical(id, draw, size, align);
     }
 
+    //======================================================================
+    /// Windows
+
     template<class IDType>
     concept CValidWindowIDType =
         std::same_as<IDType, const char*> ||
@@ -128,8 +131,10 @@ namespace JPL::ImGuiEx
         ImGuiDockNodeFlags DockFlags = 0;
     };
 
+    void RenderCustomTitleBar(ImGuiWindow* window, const char* name, bool* p_open);
+
     template<class DrawFunction>
-    void Window(const char* name, const DrawFunction& draw, bool* p_open = NULL, const WindowConfig& config = {})
+    void Window(const char* name, const DrawFunction& draw, bool* p_open = nullptr, const WindowConfig& config = {})
     {
         if (config.ConstrainsSet())
         {
@@ -146,11 +151,24 @@ namespace JPL::ImGuiEx
 
         ImGui::SetNextWindowClass(&windowClass);
 
-        if (ImGui::Begin(name, p_open, config.Flags))
+        if (p_open == nullptr or (*p_open) == true)
         {
-            draw();
+            ImGuiWindowFlags flags = config.Flags;
+
+            const bool bDrawTitleBar = !(flags & ImGuiWindowFlags_NoTitleBar);
+
+            if (bDrawTitleBar)
+                flags |= ImGuiWindowFlags_NoTitleBar;
+
+            if (ImGui::Begin(name, p_open, flags))
+            {
+                if (bDrawTitleBar)
+                    RenderCustomTitleBar(ImGui::GetCurrentWindow(), name, p_open);
+
+                draw();
+            }
+            ImGui::End();
         }
-        ImGui::End();
     }
 
     template<class DrawFunction>
