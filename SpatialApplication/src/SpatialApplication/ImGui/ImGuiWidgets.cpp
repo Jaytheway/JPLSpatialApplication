@@ -87,73 +87,156 @@ namespace JPL::ImGuiEx
         return ImGui::Button(label, size);
     }
 
-	void DrawMainWindowButtons(ImVec2 titlebarMin, ImVec2 titlebarMax)
+	//==========================================================================
+	/// Window Buttons
+
+	struct ButtonState
 	{
-		JPL::ImGuiEx::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+		bool bClipped, bHovered, bHeld, bPressed;
+	};
 
-		const bool bIsMaximized = Walnut::Application::Get().IsMaximized();
+	namespace WindowButton
+	{
+		// Padding around icon shape within button rectangle
+		static constexpr float cIconPadding = 13.0f;
 
-		const float buttonWidth = 36.0f;
-		const float buttonHeight = 26.0f;
-		const float buttonsStartX = titlebarMax.x - buttonWidth * 3.0f;
-		const float titlebarVerticalOffset = bIsMaximized ? 6.0f : 0.0f;
-
-		ImGui::SetCursorScreenPos(ImVec2(buttonsStartX, titlebarMin.y + titlebarVerticalOffset));
-
-		const float iconPadding = 13.0f;
-
-		auto getFillColour = []
+		enum class EWindowType
 		{
-			return ImGui::IsItemActive()
-				? IM_COL32(255, 255, 255, 10)
-				: ImGui::IsItemHovered()
+			Main,
+			Regular
+		};
+
+		enum class EButtonType
+		{
+			Collapse,
+			Minimize,
+			Maximize,
+			Close
+		};
+
+		static ButtonState Behavior(ImGuiID id, const ImRect& bb)
+		{
+			// Note (JP): this is mostly copy of the ImGui::CloseButton without rendering part
+
+			const ImGuiWindow* window = GImGui->CurrentWindow;
+
+			// Tweak 1: Shrink hit-testing area if button covers an abnormally large proportion of the visible region. That's in order to facilitate moving the window away. (#3825)
+			// This may better be applied as a general hit-rect reduction mechanism for all widgets to ensure the area to move window is always accessible?
+			ImRect bb_interact = bb;
+			const float area_to_visible_ratio = window->OuterRectClipped.GetArea() / bb.GetArea();
+			if (area_to_visible_ratio < 1.5f)
+				bb_interact.Expand(ImTrunc(bb_interact.GetSize() * -0.25f));
+
+			// Tweak 2: We intentionally allow interaction when clipped so that a mechanical Alt,Right,Activate sequence can always close a window.
+			// (this isn't the common behavior of buttons, but it doesn't affect the user because navigation tends to keep items visible in scrolling layer).
+			const bool is_clipped = !ImGui::ItemAdd(bb_interact, id);
+
+			bool hovered, held;
+			const bool pressed = ImGui::ButtonBehavior(bb_interact, id, &hovered, &held);
+
+			return ButtonState{ .bClipped = is_clipped, .bHovered = hovered, .bHeld = held, .bPressed = pressed };
+		}
+
+		template<EWindowType WindowType, EButtonType ButtonType>
+		ImU32 GetFillColour(const ButtonState& state)
+		{
+			if constexpr (ButtonType != EButtonType::Close)
+			{
+				return ImGui::IsItemActive()
+					? IM_COL32(255, 255, 255, 10)
+					: state.bHovered
 					? IM_COL32(255, 255, 255, 20)
 					: IM_COL32_BLACK_TRANS;
-		};
-
-		auto getIconColour = []
-		{
-			return ImGui::IsItemActive()
-				? JPL::GUI::Colours::Theme::TextDarker
-				: (ImU32)JPL::Colour(JPL::GUI::Colours::Theme::Text).WithMultipliedValue(0.9f);
-		};
-
-		
-		auto* drawList = ImGui::GetForegroundDrawList();
-
-		// Minimize Button
-		{
-			if (ImGui::InvisibleButton("Minimize", ImVec2(buttonWidth, buttonHeight)))
-			{
-				Walnut::Application::Get().Minimize();
 			}
-			const ImU32 fillColour = getFillColour();
-			const ImU32 iconColour = getIconColour();
+			else
+			{
+				if constexpr (WindowType == EWindowType::Main)
+				{
+					// Close button is the only one that may use different fill colour (red)
+					return ImGui::IsItemActive()
+						? IM_COL32(255, 50, 50, 150)
+						: state.bHovered
+						? IM_COL32(235, 50, 50, 255)
+						: IM_COL32_BLACK_TRANS;
+				}
+				else
+				{
+					return ImGui::IsItemActive()
+						? IM_COL32(255, 255, 255, 10)
+						: state.bHovered
+						? IM_COL32(255, 255, 255, 20)
+						: IM_COL32_BLACK_TRANS;
+				}
+			}
+		}
 
-			auto rect = JPL::ImGuiEx::GetItemRect();
+		template<EWindowType WindowType, EButtonType ButtonType>
+		ImU32 GetIconColour(const ButtonState& state)
+		{
+			if constexpr (ButtonType != EButtonType::Close)
+			{
+				return ImGui::IsItemActive()
+					? JPL::GUI::Colours::Theme::TextDarker
+					: (ImU32)JPL::Colour(JPL::GUI::Colours::Theme::Text).WithMultipliedValue(0.9f);
+			}
+			else
+			{
+				// Draw icon dark, to make sure it's visible on the red background fill
+
+				if constexpr (WindowType == EWindowType::Main)
+				{
+					return (ImGui::IsItemActive() || state.bHovered)
+						? JPL::GUI::Colours::Theme::Titlebar
+						: (ImU32)JPL::Colour(JPL::GUI::Colours::Theme::Text).WithMultipliedValue(0.8f);
+				}
+				else // Window == EWindowType::Regular
+				{
+					return ImGui::IsItemActive()
+						? JPL::GUI::Colours::Theme::TextDarker
+						: (ImU32)JPL::Colour(JPL::GUI::Colours::Theme::Text).WithMultipliedValue(0.8f);
+				}
+			}
+		}
+
+		template<EWindowType WindowType>
+		bool Minimize(const char* id, const ImRect& rect)
+		{
+			const ButtonState state = Behavior(ImGui::GetID(id), rect);
+
+			if (state.bClipped)
+				return state.bPressed;
+
+			const ImU32 fillColour = GetFillColour<WindowType, EButtonType::Minimize>(state);
+			const ImU32 iconColour = GetIconColour<WindowType, EButtonType::Minimize>(state);
+
+			auto* drawList = ImGui::GetWindowDrawList();
 
 			drawList->AddRectFilled(rect.Min, rect.Max, fillColour, 0.0f);
 
-			const ImVec2 lineP1 = rect.Min + ImVec2(iconPadding, rect.GetSize().y * 0.5f);
-			const ImVec2 lineP2 = lineP1 + ImVec2(rect.GetSize().x - iconPadding * 2.0f, 0.0f);
+			const ImVec2 lineP1 = rect.Min + ImVec2(cIconPadding, rect.GetSize().y * 0.5f);
+			const ImVec2 lineP2 = lineP1 + ImVec2(rect.GetSize().x - cIconPadding * 2.0f, 0.0f);
 			drawList->AddLine(lineP1, lineP2, iconColour, 1.0f);
+
+			return state.bPressed;
 		}
 
-		// Maximize Button
+		template<EWindowType WindowType>
+		bool Maximize(const char* id, const ImRect& rect, bool bIsMaximized)
 		{
-			if (ImGui::InvisibleButton("Maximize", ImVec2(buttonWidth, buttonHeight)))
-			{
-				Walnut::Application::Get().ToggleMaximize();
-			}
-			const ImU32 fillColour = getFillColour();
-			const ImU32 iconColour = getIconColour();
+			const ButtonState state = Behavior(ImGui::GetID(id), rect);
 
-			auto rect = JPL::ImGuiEx::GetItemRect();
+			if (state.bClipped)
+				return state.bPressed;
+
+			const ImU32 fillColour = GetFillColour<WindowType, EButtonType::Maximize>(state);
+			const ImU32 iconColour = GetIconColour<WindowType, EButtonType::Maximize>(state);
+
+			auto* drawList = ImGui::GetWindowDrawList();
 
 			drawList->AddRectFilled(rect.Min, rect.Max, fillColour, 0.0f);
 
 			const ImVec2 center = rect.GetCenter();
-			const float radius = (rect.GetWidth() * 0.5f - iconPadding) * 0.8f;
+			const float radius = (rect.GetWidth() * 0.5f - cIconPadding) * 0.8f;
 			ImRect square{ center - ImVec2(radius, radius), center + ImVec2(radius, radius) };
 
 			if (bIsMaximized)
@@ -178,28 +261,22 @@ namespace JPL::ImGuiEx
 				square.Expand(1.0f);
 				drawList->AddRect(square.Min, square.Max, iconColour, 0.0f, 0, 1.0f);
 			}
+
+			return state.bPressed;
 		}
 
-		// Close Button
+		template<WindowButton::EWindowType WindowType>
+		static bool Close(const char* id, const ImRect& rect)
 		{
-			if (ImGui::InvisibleButton("Close", ImVec2(buttonWidth, buttonHeight)))
-			{
-				Walnut::Application::Get().Close();
-			}
+			const ButtonState state = Behavior(ImGui::GetID(id), rect);
 
-			auto rect = JPL::ImGuiEx::GetItemRect();
+			if (state.bClipped)
+				return state.bPressed;
 
-			// Close button is the only one uses different fill colour (red)
-			const ImU32 fillColour = ImGui::IsItemActive()
-									? IM_COL32(255, 50, 50, 150)
-									: ImGui::IsItemHovered()
-										? IM_COL32(235, 50, 50, 255)
-										: IM_COL32_BLACK_TRANS;
+			const ImU32 fillColour = GetFillColour<WindowType, EButtonType::Close>(state);
+			const ImU32 iconColour = GetIconColour<WindowType, EButtonType::Close>(state);
 
-			// Draw icon dark, to make sure it's visible on the red background fill
-			const ImU32 iconColour = ImGui::IsItemActive() || ImGui::IsItemHovered()
-						? JPL::GUI::Colours::Theme::Titlebar
-						: getIconColour();
+			auto* drawList = ImGui::GetWindowDrawList();
 
 			drawList->AddRectFilled(rect.Min, rect.Max, fillColour, 0.0f);
 
