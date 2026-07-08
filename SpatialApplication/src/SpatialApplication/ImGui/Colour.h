@@ -94,5 +94,11 @@ namespace JPL
 		{
 			return { Value.x, Value.y, Value.z, Value.w * std::min(multiplier, 1.0f) };
 		}
+
+		static inline Colour WhiteWithAlpha(float alpha) { return Colour(1.0f, 1.0f, 1.0f, alpha); }
+		static inline Colour WhiteWithAlpha(int alpha) { return Colour(1.0f, 1.0f, 1.0f, (float)alpha / 255.0f); }
+
+		static inline Colour BlackWithAlpha(float alpha) { return Colour(0.0f, 0.0f, 0.0f, alpha); }
+		static inline Colour BlackWithAlpha(int alpha) { return Colour(0.0f, 0.0f, 0.0f, (float)alpha / 255.0f); }
 	};
 } // namespace JPL
