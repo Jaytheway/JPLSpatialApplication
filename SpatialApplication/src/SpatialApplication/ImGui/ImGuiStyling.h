@@ -33,7 +33,7 @@ namespace JPL::GUI
 			inline constexpr ImU32 WindowBackround = IM_COL32(21, 21, 21, 255);
 			inline constexpr ImU32 ChildBackround = IM_COL32(36, 36, 36, 30);
 			inline constexpr ImU32 ChildBackroundDark = IM_COL32(36, 36, 36, 255);
-			inline constexpr ImU32 BackgroundPopup = IM_COL32(35, 35, 35, 255);
+			inline constexpr ImU32 BackgroundPopup = IM_COL32(45, 54, 59, 255);// IM_COL32(35, 35, 35, 255);
 			
 			inline constexpr ImU32 BackgroundDark = IM_COL32(26, 26, 26, 255);
 
@@ -47,7 +47,7 @@ namespace JPL::GUI
 			inline constexpr ImU32 Highlight = IM_COL32(91, 195, 239, 255);
 			inline constexpr ImU32 Selected = IM_COL32(235, 186, 97, 255);
 
-			inline constexpr ImU32 GroupHeader = IM_COL32(47, 47, 47, 255);
+			inline constexpr ImU32 GroupHeader = IM_COL32(255, 255, 255, 23);// IM_COL32(47, 47, 47, 255);
 			inline constexpr ImU32 PropertyField = IM_COL32(15, 15, 15, 255);
 
 			inline constexpr ImU32 Border = IM_COL32(255, 255, 255, 20);

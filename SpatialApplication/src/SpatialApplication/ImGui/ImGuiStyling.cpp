@@ -86,7 +86,7 @@ namespace JPL::GUI
 	{
 		auto& colors = ImGui::GetStyle().Colors;
 
-		// Headers
+		// Headers (also Selectable is using these colours
 		colors[ImGuiCol_Header] = ImColor(Colours::Theme::GroupHeader);
 		colors[ImGuiCol_HeaderHovered] = ImColor(Colours::Theme::GroupHeader);
 		colors[ImGuiCol_HeaderActive] = ImColor(Colours::Theme::GroupHeader);
