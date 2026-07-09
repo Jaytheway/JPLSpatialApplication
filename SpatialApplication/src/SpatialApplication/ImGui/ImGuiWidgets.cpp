@@ -142,7 +142,7 @@ namespace JPL::ImGuiEx
 		{
 			if constexpr (ButtonType != EButtonType::Close)
 			{
-				return ImGui::IsItemActive()
+				return state.bHeld
 					? IM_COL32(255, 255, 255, 10)
 					: state.bHovered
 					? IM_COL32(255, 255, 255, 20)
@@ -153,7 +153,7 @@ namespace JPL::ImGuiEx
 				if constexpr (WindowType == EWindowType::Main)
 				{
 					// Close button is the only one that may use different fill colour (red)
-					return ImGui::IsItemActive()
+					return state.bHeld
 						? IM_COL32(255, 50, 50, 150)
 						: state.bHovered
 						? IM_COL32(235, 50, 50, 255)
@@ -161,7 +161,7 @@ namespace JPL::ImGuiEx
 				}
 				else
 				{
-					return ImGui::IsItemActive()
+					return state.bHeld
 						? IM_COL32(255, 255, 255, 10)
 						: state.bHovered
 						? IM_COL32(255, 255, 255, 20)
@@ -175,7 +175,7 @@ namespace JPL::ImGuiEx
 		{
 			if constexpr (ButtonType != EButtonType::Close)
 			{
-				return ImGui::IsItemActive()
+				return state.bHeld
 					? JPL::GUI::Colours::Theme::TextDarker
 					: (ImU32)JPL::Colour(JPL::GUI::Colours::Theme::Text).WithMultipliedValue(0.9f);
 			}
@@ -185,13 +185,13 @@ namespace JPL::ImGuiEx
 
 				if constexpr (WindowType == EWindowType::Main)
 				{
-					return (ImGui::IsItemActive() || state.bHovered)
+					return (state.bHeld || state.bHovered)
 						? JPL::GUI::Colours::Theme::Titlebar
 						: (ImU32)JPL::Colour(JPL::GUI::Colours::Theme::Text).WithMultipliedValue(0.8f);
 				}
 				else // Window == EWindowType::Regular
 				{
-					return ImGui::IsItemActive()
+					return state.bHeld
 						? JPL::GUI::Colours::Theme::TextDarker
 						: (ImU32)JPL::Colour(JPL::GUI::Colours::Theme::Text).WithMultipliedValue(0.8f);
 				}
@@ -199,7 +199,35 @@ namespace JPL::ImGuiEx
 		}
 
 		template<EWindowType WindowType>
-		bool Minimize(const char* id, const ImRect& rect)
+		bool Collapse(const char* id, const ImRect& rect, bool bCollapsed, ImDrawFlags rounding)
+		{
+			const ButtonState state = Behavior(ImGui::GetID(id), rect);
+
+			if (state.bClipped)
+				return state.bPressed;
+
+			const ImU32 fillColour = GetFillColour<WindowType, EButtonType::Collapse>(state);
+			const ImU32 iconColour = GetIconColour<WindowType, EButtonType::Collapse>(state);
+
+			auto* drawList = ImGui::GetWindowDrawList();
+			// We assume collapse button is on the left side, so round top-left corner
+			drawList->AddRectFilled(rect.Min, rect.Max, fillColour, ImGui::GetStyle().WindowRounding, rounding);
+
+			const float pressOffset = state.bHeld ? Constant::cPressedLabelOffset : 0.0f;
+
+			// ImGui positions the arrow based on current FontSize
+			const float h = drawList->_Data->FontSize;
+			const ImVec2 center(h * 0.5f, h * 0.5f - pressOffset);
+
+			// We calculate offset to position it within our rect center
+			const ImVec2 pos = rect.GetCenter() - center;
+			ImGui::RenderArrow(drawList, pos, iconColour, bCollapsed ? ImGuiDir_Right : ImGuiDir_Down, /* width-scale */ 1.0f);
+
+			return state.bPressed;
+		}
+
+		template<EWindowType WindowType>
+		bool Minimize(const char* id, const ImRect& rect, ImDrawFlags rounding = ImDrawFlags_RoundCornersNone)
 		{
 			const ButtonState state = Behavior(ImGui::GetID(id), rect);
 
@@ -211,7 +239,7 @@ namespace JPL::ImGuiEx
 
 			auto* drawList = ImGui::GetWindowDrawList();
 
-			drawList->AddRectFilled(rect.Min, rect.Max, fillColour, 0.0f);
+			drawList->AddRectFilled(rect.Min, rect.Max, fillColour, ImGui::GetStyle().WindowRounding, rounding);
 
 			const ImVec2 lineP1 = rect.Min + ImVec2(cIconPadding, rect.GetSize().y * 0.5f);
 			const ImVec2 lineP2 = lineP1 + ImVec2(rect.GetSize().x - cIconPadding * 2.0f, 0.0f);
@@ -221,7 +249,7 @@ namespace JPL::ImGuiEx
 		}
 
 		template<EWindowType WindowType>
-		bool Maximize(const char* id, const ImRect& rect, bool bIsMaximized)
+		bool Maximize(const char* id, const ImRect& rect, bool bIsMaximized, ImDrawFlags rounding = ImDrawFlags_RoundCornersNone)
 		{
 			const ButtonState state = Behavior(ImGui::GetID(id), rect);
 
@@ -233,7 +261,7 @@ namespace JPL::ImGuiEx
 
 			auto* drawList = ImGui::GetWindowDrawList();
 
-			drawList->AddRectFilled(rect.Min, rect.Max, fillColour, 0.0f);
+			drawList->AddRectFilled(rect.Min, rect.Max, fillColour, ImGui::GetStyle().WindowRounding, rounding);
 
 			const ImVec2 center = rect.GetCenter();
 			const float radius = (rect.GetWidth() * 0.5f - cIconPadding) * 0.8f;
@@ -266,7 +294,7 @@ namespace JPL::ImGuiEx
 		}
 
 		template<WindowButton::EWindowType WindowType>
-		static bool Close(const char* id, const ImRect& rect)
+		static bool Close(const char* id, const ImRect& rect, ImDrawFlags rounding = ImDrawFlags_RoundCornersTopRight)
 		{
 			const ButtonState state = Behavior(ImGui::GetID(id), rect);
 
@@ -278,7 +306,7 @@ namespace JPL::ImGuiEx
 
 			auto* drawList = ImGui::GetWindowDrawList();
 
-			drawList->AddRectFilled(rect.Min, rect.Max, fillColour, 0.0f);
+			drawList->AddRectFilled(rect.Min, rect.Max, fillColour, ImGui::GetStyle().WindowRounding, rounding);
 
 			const ImVec2 center = rect.GetCenter();
 			const float radius = (rect.GetWidth() * 0.5f - cIconPadding);
@@ -339,12 +367,24 @@ namespace JPL::ImGuiEx
 		}
 	}
 
-	bool CloseButton(const char* id, const ImVec2& size)
+	bool CloseButton(const char* id, const ImVec2& size, ImDrawFlags rounding)
 	{
 		const ImVec2 pos = ImGui::GetCursorScreenPos();
 		const ImRect bb(pos, pos + size);
-		const bool bPressed = WindowButton::Close<WindowButton::EWindowType::Regular>(id, bb);
+		const bool bPressed = WindowButton::Close<WindowButton::EWindowType::Regular>(id, bb, rounding);
 		ImGui::ItemSize(size);
+		return bPressed;
+	}
+
+	bool CloseButton(const char* id, const ImRect& boudns, ImDrawFlags rounding)
+	{
+		const bool bPressed = WindowButton::Close<WindowButton::EWindowType::Regular>(id, boudns, rounding);
+		return bPressed;
+	}
+
+	bool CollapseButton(const char* id, const ImRect& boudns, bool bCollapsed, ImDrawFlags rounding)
+	{
+		const bool bPressed = WindowButton::Collapse<WindowButton::EWindowType::Regular>(id, boudns, bCollapsed, rounding);
 		return bPressed;
 	}
 

@@ -95,7 +95,12 @@ namespace JPL::ImGuiEx
 	void DrawMainWindowButtons(ImVec2 titlebarMin, ImVec2 titlebarMax);
 
 	// Render window close button
-	bool CloseButton(const char* id, const ImVec2& size);
+	bool CloseButton(const char* id, const ImVec2& size, ImDrawFlags rounding = ImDrawFlags_RoundCornersTopRight);
+
+	// This overload doesn't use nor advance ImGui cursor
+	bool CloseButton(const char* id, const ImRect& boudns, ImDrawFlags rounding = ImDrawFlags_RoundCornersTopRight);
+
+	bool CollapseButton(const char* id, const ImRect& boudns, bool bCollapsed, ImDrawFlags rounding = ImDrawFlags_RoundCornersTopLeft);
 
 	//==========================================================================
 	/// Icon Button
