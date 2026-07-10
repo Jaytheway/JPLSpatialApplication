@@ -43,13 +43,14 @@
 #include "Utility/PerformanceMetering.h"
 #include "Systems/EventsLoop.h"
 
+#include "choc/text/choc_Files.h"
+#include "choc/text/choc_JSON.h"
+
 #include <implot.h>
 
-#include <cassert>
 #include <filesystem>
 #include <memory>
 #include <string>
-#include <unordered_map>
 
 namespace JPL
 {
@@ -60,6 +61,193 @@ namespace JPL
 		#include "GUI/Embed/DefaultImGuiSettings.embed"
 	} // namespace Embedded
 
+	// TODO: this may become modifiable (i.e. to save in OS's AppData directory)
+	constexpr const char* cAppDataFilename = "jplsa_app_data.json";
+	
+	//==========================================================================
+	void JPLSpatialApplication::SerializeAppData(std::string_view filepath)
+	{
+		sAppData->Serialize(filepath);
+	}
+
+	const std::shared_ptr<JPLSpatialApplicationData>& JPLSpatialApplication::DeserializeAppData(std::string_view filepath)
+	{
+		sAppData = JPLSpatialApplicationData::Load(filepath);
+		return sAppData;
+	}
+
+	void JPLSpatialApplication::RegisterWindow(const char* name)
+	{
+		JPLSpatialApplicationData::sWindowStates.try_emplace(name, /* bOpen */ true);
+	}
+
+	void JPLSpatialApplication::ExecuteCommand(IUndoableCommand* command)
+	{
+		if (command)
+		{
+			command->Execute();
+			sCommandHistory.Add(std::unique_ptr<IUndoableCommand>(command));
+		}
+	}
+
+	//==========================================================================
+	bool JPLSpatialApplicationData::IsValidObject(const choc::value::Value& value)
+	{
+		return value.isObject() and value.hasObjectMember("Type") and value["Type"].getString() == cClassName;
+	}
+
+	choc::value::Value JPLSpatialApplicationData::ToValue() const
+	{
+		return choc::json::create(
+			"Type", cClassName,
+			"Version", 1,
+			"WindowWidth", WindowWidth,
+			"WindowHeight", WindowHeight,
+			"WindowIsMaximized", WindowIsMaximized
+		);
+	}
+
+	void JPLSpatialApplicationData::FromValue(const choc::value::Value& value)
+	{
+		if (not IsValidObject(value))
+			return;
+
+		// Ensure we deserialize valid values from application settings .json
+		const int width = value["WindowWidth"].get<int>();
+		const int height = value["WindowHeight"].get<int>();
+		if (width > 0) WindowWidth = width;
+		if (height > 0) WindowHeight = height;
+		
+		WindowIsMaximized = value["WindowIsMaximized"].getBool();
+			 
+		if (value.hasObjectMember(cWindowStatesType))
+			DeserializeWindowStates(value[cWindowStatesType]);
+	}
+
+	choc::value::Value JPLSpatialApplicationData::TryParse(std::string_view settingsJSON)
+	{
+		choc::value::Value settings = choc::json::parse(settingsJSON);
+
+		if (JPL_ENSURE(IsValidObject(settings)))
+		{
+			const int version = settings["Version"].get<int>();
+			if (version == cVersion)
+			{
+				return settings;
+			}
+			else
+			{
+				// TODO: handle version updates
+				Log::Warn("Loaded JPL Application Settings with older version {}, current version {}.", version, cVersion);
+			}
+		}
+
+		return {};
+	}
+
+	void JPLSpatialApplicationData::Deserialize(const std::filesystem::path& filepath)
+	{
+		if (std::filesystem::exists(filepath)) // Load application data from file
+		{
+			try
+			{
+				const std::string settingsStr = choc::file::loadFileAsString(filepath.string());
+				const choc::value::Value jsonObject = JPLSpatialApplicationData::TryParse(settingsStr);
+				if (not jsonObject.isVoid())
+					FromValue(jsonObject);
+			}
+			catch (const choc::file::Error& error)
+			{
+				Log::Error("Failed to deserialize Application Data from file '{}': {}", filepath.string(), error.what());
+
+			}
+			catch (const choc::json::ParseError& error)
+			{
+				Log::Error("Failed to deserialize Application Data from file '{}': {}", filepath.string(), error.what());
+			}
+		}
+		else // Create default application data and save to file
+		{
+			try
+			{
+				choc::value::Value jsonObject = ToValue(); // default value
+				const std::string settingsStr = choc::json::toString(jsonObject, /* useLineBreaks */ true);
+				if (not settingsStr.empty())
+					choc::file::replaceFileWithContent(filepath, settingsStr);
+			}
+			catch (const choc::file::Error& error)
+			{
+				Log::Error("Failed to create default Application Data for file '{}': {}", filepath.string(), error.what());
+			}
+		}
+	}
+
+	void JPLSpatialApplicationData::Serialize(const std::filesystem::path& filepath) const
+	{
+		try
+		{
+			choc::value::Value jsonObject = ToValue();
+			const std::string settingsStr = choc::json::toString(jsonObject, /* useLineBreaks */ true);
+			if (not settingsStr.empty())
+				choc::file::replaceFileWithContent(filepath, settingsStr);
+
+			SerializeWindowStates();
+		}
+		catch (const choc::file::Error& error)
+		{
+			Log::Error("Failed to serialize Application Data: {}", error.what());
+		}
+	}
+
+	void JPLSpatialApplicationData::DeserializeWindowStates(const choc::value::ValueView& data)
+	{
+		if (not data.hasObjectMember("Type") or data["Type"].getString() != cWindowStatesType)
+			return;
+
+		if (data["Version"].get<int>() != cWindowStateVersion)
+			return; // TODO: log version errror, or implement conversion
+
+		const auto& states = data["Windows"];
+
+		sWindowStringTable.clear();
+		sWindowStringTable.reserve(states.size());
+
+		states.visitObjectMembers([&](std::string_view name, const choc::value::ValueView& value)
+		{
+			if (not name.empty())
+			{
+				const auto& nameStr = sWindowStringTable.emplace_back(name);
+				sWindowStates[nameStr.c_str()] = { value.getBool() };
+			}
+		});
+	}
+
+	choc::value::Value JPLSpatialApplicationData::SerializeWindowStates()
+	{
+		choc::value::Value data = choc::json::create(
+			"Type", cWindowStatesType,
+			"Version", cWindowStateVersion
+		);
+
+		choc::value::Value states = choc::value::createObject("");
+
+		//! For now only serializing oppennes state
+		for (auto&& [label, state] : JPLSpatialApplicationData::sWindowStates)
+			states.addMember(label, state.bOpen);
+
+		data.addMember("Windows", states);
+
+		return data;
+	}
+
+	std::shared_ptr<JPLSpatialApplicationData> JPLSpatialApplicationData::Load(const std::filesystem::path& filepath)
+	{
+		std::shared_ptr<JPLSpatialApplicationData> appData = std::make_shared<JPLSpatialApplicationData>();
+		appData->Deserialize(filepath);
+		return appData;
+	}
+
+	//==========================================================================
 	class JPLSpatialApplicationLayer : public Walnut::Layer
 		, public ChangeListener<AudioPlaybackLayer>
 		, public ChangeListener<RoomLayer>
@@ -88,7 +276,7 @@ namespace JPL
 
 		~JPLSpatialApplicationLayer()
 		{
-			JPL::Log::Uninit();
+			Log::Uninit();
 		}
 
 		virtual void OnAttach() override
@@ -106,6 +294,19 @@ namespace JPL
 
 		virtual void OnDetach() override
 		{
+			// Serialize application window state
+			{
+				const auto& app = Walnut::Application::Get();
+				const auto [width, height] = app.GetWindowClientSize();
+
+				auto appData = JPLSpatialApplication::GetAppData();
+				appData->WindowWidth = width;
+				appData->WindowHeight = height;
+				appData->WindowIsMaximized = app.IsMaximized();
+
+				JPLSpatialApplication::SerializeAppData(cAppDataFilename);
+			}
+
 			mEventsLoop = nullptr;
 
 			ImPlot::DestroyContext();
@@ -344,8 +545,13 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 {
 	JPL::Log::Init(); // Initialize logger as soon as possible (unitit in app layer destructor)
 
+	// Deserialize application window state
+	auto appData = JPL::JPLSpatialApplication::DeserializeAppData(JPL::cAppDataFilename);
+
 	Walnut::ApplicationSpecification spec;
 	spec.Name = "JPL Spatial Application";
+	spec.Width = appData->WindowWidth;
+	spec.Height = appData->WindowHeight;
 	
 	// this is the icon for taskbar and native titlebar if not using custom
 	spec.IconData = std::span(JPL::Embedded::jplsa_app_icon, JPLSA_APP_ICON_WIDTH * JPLSA_APP_ICON_HEIGHT);
@@ -376,5 +582,15 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 			ImGui::EndMenu();
 		}
 	});*/
+	// Maximize async, in case some glfw code needs to run after this function returns
+	if (appData->WindowIsMaximized and not app->IsMaximized())
+	{
+		JPL::EventsLoop::Schedule([]
+		{
+			auto& app = Walnut::Application::Get();
+			if (not app.IsMaximized())
+				app.ToggleMaximize();
+		});
+	}
 	return app;
 }
