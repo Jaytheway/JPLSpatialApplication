@@ -28,6 +28,7 @@
 
 #include <MiniaudioCpp/MiniaudioWrappers.h>
 
+#include "GUI/AirAbsorptionGUI.h"
 #include "GUI/DirectoryDisplay.h"
 #include "GUI/VBAPVisualization.h"
 #include "GUI/PerformanceGUI.h"
@@ -353,6 +354,8 @@ namespace JPL
 				JPLSpatialApplication::Redo();
 
 			mLogGUI.Draw();
+
+			mAirAbsorptionGUI.Draw();
 		}
 
 		void PushLayers(Walnut::Application& app)
@@ -461,6 +464,7 @@ namespace JPL
 		static inline std::shared_ptr<Walnut::Image> sLogoImage{};
 
 		GUI::ConsoleLogGUI mLogGUI;
+		GUI::AirAbsorptionGUI mAirAbsorptionGUI;
 	};
 
 /* TODO:
