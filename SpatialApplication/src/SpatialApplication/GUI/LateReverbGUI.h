@@ -93,9 +93,6 @@ namespace JPL
 		// by background thread to update IR waveform
 		bool bUpdatingWaveform;
 
-		// shared_ptr to make it undoable
-		std::shared_ptr<bool> bShowIRAudioPreview;
-		
 		//? Profile
 		//float IRGenTime = 0.0f;
 	};

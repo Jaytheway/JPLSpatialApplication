@@ -21,15 +21,16 @@
 #include "GUI/LateReverbGUI.h"
 #include "ImGui/ImGui.h"
 #include "GUI/PropertyWidgets.h"
+#include "GUI/Window.h"
 #include "Systems/EventsLoop.h"
 
 #include <JPLSpatial/Algo/Algorithm.h>
 #include <JPLSpatial/Containers/StaticArray.h>
-#include <JPLSpatial/Utilities/Variance.h>
 
 #define JPL_PROFILE_IR_GEN 0
 
 #if JPL_PROFILE_IR_GEN 
+#include <JPLSpatial/Utilities/Variance.h>
 #include "Utility/Timer.h"
 #endif
 
@@ -38,13 +39,17 @@
 
 namespace JPL
 {
+	namespace Names
+	{
+		constexpr const char* cReverbPreviewWindow = "Reverb IR Preview";
+	}
+
 	//==========================================================================
 	LateReverbGUI::LateReverbGUI(std::shared_ptr<LateReverbModel> model)
 		: mModel(model)
 		, mIRReverb(std::make_shared<ReverbBus>())
 		, mIRAudioPreview(mIRWaveformSource, GUI::EAudioPreviewMode::Waveform) // Display spectrogram by default
 		, bUpdatingWaveform(false)
-		, bShowIRAudioPreview(std::make_shared<bool>(false))
 	{
 		JPL_ASSERT(model);
 
@@ -121,7 +126,7 @@ namespace JPL
 				GUI::PropertySlider("ER Level", Undoable(mModel, &LateReverbModel::DryLevel), 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
 				GUI::PropertySlider("Reverb Level", Undoable(mModel, &LateReverbModel::WetLevel), 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
 
-				GUI::PropertyCheckbox("Show IR", Undoable(bShowIRAudioPreview));
+				ImGuiEx::Checkbox("Show IR", JPLSpatialApplication::GetWindowState(Names::cReverbPreviewWindow).bOpen);
 			});
 		});
 	}
@@ -130,40 +135,26 @@ namespace JPL
 	{
 		using namespace JPL::ImGuiEx;
 
-		if (*bShowIRAudioPreview)
+		const ImVec2 windowPaddingBckp = ImGui::GetStyle().WindowPadding;
+
+		// Remove padding for the window displaying IR
+		ScopedStyle removePadding(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+		const WindowConfig config
 		{
-			const ImVec2 windowPaddingBckp = ImGui::GetStyle().WindowPadding;
+			.Size = ImVec2(300.0f, 150.0f),
+			.SizeCond = ImGuiCond_FirstUseEver,
+			.MinSize = ImVec2(200.0f, 100.0f),
+			.Flags = ImGuiWindowFlags_NoCollapse
+		};
 
-			// Remove padding for the window displaying IR
-			ScopedStyle removePadding(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+		GUI::Window(Names::cReverbPreviewWindow, config, [&]
+		{
+			// Restore padding for any pupups created by the Audio Preview
+			ScopedStyle restorePadding(ImGuiStyleVar_WindowPadding, windowPaddingBckp);
 
-			const WindowConfig config
-			{
-				.Size = ImVec2(300.0f, 150.0f),
-				.SizeCond = ImGuiCond_FirstUseEver,
-				.MinSize = ImVec2(200.0f, 100.0f),
-				.Flags = ImGuiWindowFlags_NoCollapse
-			};
-
-			bool bShowIRPreviewToggle = *bShowIRAudioPreview;
-
-			Window("Reverb IR Preview", config, [&]
-			{
-				// Restore padding for any pupups created by the Audio Preview
-				ScopedStyle restorePadding(ImGuiStyleVar_WindowPadding, windowPaddingBckp);
-
-				mIRAudioPreview.Draw("IR Audio Preview");
-			}, &bShowIRPreviewToggle);
-
-			// Since window can be closed from ImGui,
-			// we need to manually check and add the chagne to the undo history
-			if (*bShowIRAudioPreview != bShowIRPreviewToggle)
-			{
-				std::swap(*bShowIRAudioPreview, bShowIRPreviewToggle);
-				JPLSpatialApplication::GetCommandHistory()
-					.PropertyEdited(Undoable(bShowIRAudioPreview), OldValue(bShowIRPreviewToggle), "Show IR");
-			}
-		}
+			mIRAudioPreview.Draw("IR Audio Preview");
+		});
 	}
 
 	void LateReverbGUI::RefreshReverbProperties()
