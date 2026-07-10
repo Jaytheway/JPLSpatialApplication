@@ -63,6 +63,7 @@ namespace JPL
 
 	// TODO: this may become modifiable (i.e. to save in OS's AppData directory)
 	constexpr const char* cAppDataFilename = "jplsa_app_data.json";
+	constexpr const char* cAppSettingsFilename = "jplsa_settings.ini";
 	
 	//==========================================================================
 	void JPLSpatialApplication::SerializeAppData(std::string_view filepath)
@@ -557,7 +558,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 	spec.IconData = std::span(JPL::Embedded::jplsa_app_icon, JPLSA_APP_ICON_WIDTH * JPLSA_APP_ICON_HEIGHT);
 	spec.CustomTitlebar = true;
 	
-	spec.SettingsFile = "jplsa_settings.ini";
+	spec.SettingsFile = JPL::cAppSettingsFilename;
 	spec.DefaultSettingsData = JPL::Embedded::gDefaultImGuiLayout;
 
 	Walnut::Application* app = new Walnut::Application(spec);
