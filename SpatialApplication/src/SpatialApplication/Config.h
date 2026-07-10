@@ -21,9 +21,6 @@
 
 /// This header contains mostly development macros to enable/disable certain parts of the code
 
-// Enable air absorption GUI
-#define JPL_DEV_AIR_ABSORPTION_GUI 0
-
 // Enabled GUI for manual and deterministic BDPT controls.
 // This also disables runtime updates for BDPT.
 #define JPL_DEV_BDPT_DBG_GUI 0
