@@ -25,6 +25,9 @@
 
 namespace JPL::ImGuiEx
 {
+    //======================================================================
+    /// Layout
+
     template<class IDType>
     concept CValidLayoutIDType =
         std::same_as<IDType, const char*> ||
@@ -210,6 +213,9 @@ namespace JPL::ImGuiEx
             ImGui::EndTabBar();
         }
     }
+
+    //======================================================================
+    /// Tab Bar
 
     template<class DrawFunction>
     void TabBar(const char* label, ImGuiTabBarFlags flags, const DrawFunction& draw)
