@@ -571,17 +571,25 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 	editorLayer->PushLayers(*app);
 
 	// We dnon't need menubar for now
-	/*app->SetMenubarCallback([app]()
+	app->SetMenubarCallback([app]()
 	{
-		if (ImGui::BeginMenu("File"))
-		{
-			if (ImGui::MenuItem("Exit"))
-			{
-				app->Close();
+		using namespace JPL::ImGuiEx;
+		Menu("File",
+			 MenuItem{
+				 "Exit",
+				 [] { Walnut::Application::Get().Close(); }
+			 }
+		);
+
+		Menu("Window",
+			MenuItemSelectableList{
+				JPL::JPLSpatialApplication::GetAllWindowStates(),
+				[](auto&& pair) -> const char* { return pair.first; },
+				[](auto&& pair) -> bool& { return pair.second.bOpen; }
 			}
-			ImGui::EndMenu();
-		}
-	});*/
+		);
+	});
+
 	// Maximize async, in case some glfw code needs to run after this function returns
 	if (appData->WindowIsMaximized and not app->IsMaximized())
 	{
@@ -592,5 +600,6 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 				app.ToggleMaximize();
 		});
 	}
+
 	return app;
 }
