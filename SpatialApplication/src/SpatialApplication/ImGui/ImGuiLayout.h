@@ -21,7 +21,10 @@
 
 #include "ImGui/ImGui.h"
 
+#include <JPLSpatial/Utilities/TypeUtilities.h>
+
 #include <concepts>
+#include <ranges>
 
 namespace JPL::ImGuiEx
 {
@@ -237,6 +240,107 @@ namespace JPL::ImGuiEx
     void TabItem(const char* label, bool* p_open, ImGuiTabItemFlags flags, const DrawFunction& draw)
     {
         TabItem(label, draw, flags);
+    }
+
+
+    //==========================================================================
+    /// Menu Bar & Menu Items
+
+    template<class CommandType> requires (std::is_invocable_v<CommandType>)
+    struct MenuItem
+    {
+        const char* Label = nullptr;
+        CommandType Command;
+        bool bSelected = false;
+
+        void Draw() const
+        {
+            ImGui::AlignTextToFramePadding();
+            const char* iconOffset = "   ";
+            if (ImGui::MenuItemEx(Label, iconOffset, nullptr, bSelected)) // TODO: icon, chortcut, enabled
+                std::invoke(Command);
+        }
+    };
+
+    struct MenuItemSelectable
+    {
+        const char* Label = nullptr;
+        bool& bSelected;
+
+        inline void Draw() const
+        {
+            ImGui::AlignTextToFramePadding();
+            const char* iconOffset = "   ";
+            if (ImGui::MenuItemEx(Label, iconOffset, nullptr, bSelected))
+                bSelected = !bSelected;
+        }
+    };
+
+    template<class T, class RangeType>
+    concept CMenuItemLabelCallback = std::ranges::input_range<RangeType> and std::is_invocable_r_v<const char*, T, std::ranges::range_value_t<RangeType>>;
+
+    template<class T, class RangeType>
+    concept CMenuItemValueCallback = std::ranges::input_range<RangeType> and std::is_invocable_r_v<bool&, T, std::ranges::range_value_t<RangeType>>;
+
+	template<
+		std::ranges::input_range RangeType,
+		CMenuItemLabelCallback<RangeType> LabelProjection,
+        CMenuItemValueCallback<RangeType> ValueProjection
+	>
+    struct MenuItemSelectableList
+    {
+        RangeType& Range;
+        LabelProjection GetLabelCb;
+        ValueProjection ValueCb;
+
+        inline void Draw() const
+        {
+            for (auto&& pair : Range)
+            {
+                MenuItemSelectable{
+                    .Label = std::invoke(GetLabelCb, pair),
+                    .bSelected = std::invoke(ValueCb, pair),
+                }.Draw();
+            }
+        }
+    };
+
+
+    // TODO: MenuItem with command ID instead of functor (maybe also with context/target)
+
+    struct MenuSeparator
+    {
+        inline void Draw() const { ImGui::Separator(); }
+    };
+
+    template<class T>
+    concept CMenuItem =
+        Type::CIsSpecializationOf<T, MenuItem> or
+        std::same_as<T, MenuItemSelectable> or
+        Type::CIsSpecializationOf<T, MenuItemSelectableList> or
+        std::same_as<T, MenuSeparator>;
+
+    // We have to do this Push/Pop instead of using our ScopedXXX utilities
+    // to avoid circular dependencies
+    namespace Impl
+    {
+        void PushMenuStyle();
+        void PopMenuStyle();
+    }
+
+    template<CMenuItem ...MenuItemArgs>
+    void Menu(const char* label, MenuItemArgs...items)
+    {
+        Impl::PushMenuStyle();
+
+        if (ImGui::BeginMenu(label))
+        {
+            (items.Draw(), ...);
+
+            ImGui::EndMenu();
+        }
+
+        Impl::PopMenuStyle();
     }
 
 } // namespace JPL::ImGuiEx

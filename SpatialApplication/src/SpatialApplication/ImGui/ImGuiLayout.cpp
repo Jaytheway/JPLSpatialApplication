@@ -2,6 +2,20 @@
 
 namespace JPL::ImGuiEx
 {
+	void Impl::PushMenuStyle()
+	{
+		auto& style = ImGui::GetStyle();
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.WindowPadding.x, 4.0f));
+		// When ImGui Draws MenuItem, for some reason FramePadding and ItemSpacing semantics are swapped,
+		// specifically when drawing the highlightable background.
+		// We want tighter spacing, but larger item rectangle
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, 2.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(style.ItemSpacing.x, 8.0f));
+	}
+	void Impl::PopMenuStyle()
+	{
+		ImGui::PopStyleVar(3);
+	}
 
 	void Impl::RenderCustomTitleBarDecorations(ImGuiWindow* window, const char* name, bool* p_open)
 	{
