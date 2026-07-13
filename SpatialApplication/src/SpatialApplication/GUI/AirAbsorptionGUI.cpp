@@ -222,7 +222,7 @@ namespace JPL::GUI
 					mAACache->FrequencyBandCenters.store(freq);
 
 					// Setup header row
-					ImGui::TableSetupColumn("       FREQUENCY BAND:");
+					ImGui::TableSetupColumn("       FREQUENCY BAND Hz:");
 					ImGui::TableSetupColumn(getFrequencyStr(freq[0]), ImGuiTableColumnFlags_WidthStretch);
 					ImGui::TableSetupColumn(getFrequencyStr(freq[1]), ImGuiTableColumnFlags_WidthStretch);
 					ImGui::TableSetupColumn(getFrequencyStr(freq[2]), ImGuiTableColumnFlags_WidthStretch);
