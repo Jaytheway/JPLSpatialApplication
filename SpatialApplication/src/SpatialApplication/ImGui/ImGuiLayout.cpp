@@ -5,7 +5,7 @@ namespace JPL::ImGuiEx
 	void Impl::PushMenuStyle()
 	{
 		auto& style = ImGui::GetStyle();
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.WindowPadding.x, 4.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 4.0f));
 		// When ImGui Draws MenuItem, for some reason FramePadding and ItemSpacing semantics are swapped,
 		// specifically when drawing the highlightable background.
 		// We want tighter spacing, but larger item rectangle
@@ -87,7 +87,9 @@ namespace JPL::ImGuiEx
             const ImVec2 collapseButtonSize(buttonSize, titleBarHeight);
             const ImRect collapseButtonBB(collapseButtonPos, collapseButtonPos + collapseButtonSize);
 
-            if (ImGuiEx::CollapseButton("#COLLAPSE_JPL", collapseButtonBB, window->Collapsed))
+            const ImDrawFlags rounding = window->Collapsed ? ImDrawFlags_RoundCornersLeft : ImDrawFlags_RoundCornersTopLeft;
+
+            if (ImGuiEx::CollapseButton("#COLLAPSE_JPL", collapseButtonBB, window->Collapsed, rounding))
                 window->WantCollapseToggle = true;
         }
 
@@ -101,7 +103,9 @@ namespace JPL::ImGuiEx
             const ImVec2 closeButtonSize(buttonSize, titleBarHeight);
             const ImRect closeButtonBB(closeButtonPos, closeButtonPos + closeButtonSize);
 
-            if (ImGuiEx::CloseButton("#CLOSE_JPL", closeButtonBB))
+            const ImDrawFlags rounding = window->Collapsed ? ImDrawFlags_RoundCornersRight : ImDrawFlags_RoundCornersTopRight;
+
+            if (ImGuiEx::CloseButton("#CLOSE_JPL", closeButtonBB, rounding))
                 *p_open = false;
 
             g.CurrentItemFlags = backupItemFlags;
@@ -112,4 +116,25 @@ namespace JPL::ImGuiEx
         
         ImGui::PopClipRect();
 	}
+
+    //==========================================================================
+    void MenuItemSelectable::RenderCheckMark()
+    {
+        const float padding = ImGui::GetStyle().FramePadding.x;
+        
+        const auto [xMax, yMax] = ImGui::GetItemRectMax();
+        const float yMin = ImGui::GetItemRectMin().y;
+        
+        const float size = GImGui->FontSize * 0.866f;
+        const float offsetX = GImGui->FontSize * 0.50f;
+        const float offsetY = size * 0.5f;
+
+        // Mainly eyeballing a decent placement within menu item selectable
+        const ImVec2 pos{
+            xMax - size - offsetX - padding,
+            (yMax - yMin) * 0.5f + yMin - offsetY
+        };
+
+        ImGui::RenderCheckMark(ImGui::GetWindowDrawList(), pos, ImGui::GetColorU32(ImGuiCol_Text), size);
+    }
 }

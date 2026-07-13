@@ -25,6 +25,7 @@
 
 #include <concepts>
 #include <ranges>
+#include <type_traits>
 
 namespace JPL::ImGuiEx
 {
@@ -245,6 +246,25 @@ namespace JPL::ImGuiEx
 
     //==========================================================================
     /// Menu Bar & Menu Items
+    
+    struct MenuItemSelectable
+    {
+        const char* Label = nullptr;
+        bool& bSelected;
+
+        inline void Draw() const
+        {
+            ImGui::AlignTextToFramePadding();
+            const char* iconOffset = "   ";
+            if (ImGui::MenuItemEx(Label, iconOffset, nullptr, /*bSelected*/ false))
+                bSelected = !bSelected;
+
+            if (bSelected)
+                RenderCheckMark();
+        }
+
+        static void RenderCheckMark();
+    };
 
     template<class CommandType> requires (std::is_invocable_v<CommandType>)
     struct MenuItem
@@ -257,22 +277,11 @@ namespace JPL::ImGuiEx
         {
             ImGui::AlignTextToFramePadding();
             const char* iconOffset = "   ";
-            if (ImGui::MenuItemEx(Label, iconOffset, nullptr, bSelected)) // TODO: icon, chortcut, enabled
+            if (ImGui::MenuItemEx(Label, iconOffset, nullptr, /*bSelected*/ false)) // TODO: icon, chortcut, enabled
                 std::invoke(Command);
-        }
-    };
 
-    struct MenuItemSelectable
-    {
-        const char* Label = nullptr;
-        bool& bSelected;
-
-        inline void Draw() const
-        {
-            ImGui::AlignTextToFramePadding();
-            const char* iconOffset = "   ";
-            if (ImGui::MenuItemEx(Label, iconOffset, nullptr, bSelected))
-                bSelected = !bSelected;
+            if (bSelected)
+                MenuItemSelectable::RenderCheckMark();
         }
     };
 
