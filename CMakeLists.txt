@@ -9,7 +9,7 @@ project(JPLSpatialApplication LANGUAGES CXX)
 project(JPLSpatialApplication LANGUAGES C CXX)
 project(JPLSpatialApplication VERSION 0.2.0)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 # Enable Interprocedural Optimization if requested and supported
 include(cmake/InterProcessOptimization.cmake)
