@@ -35,7 +35,10 @@ function(fetch_JPLSpatial)
         set(JPL_CORE_INCLUDE_PATH "${JPL_SPATIAL_DIR}/Spatialization/include" PARENT_SCOPE)
 
         # Enable tagged logging in JPL Spatial so we can route it to the right log channel in the application
-        target_compile_definitions(JPLSpatial PUBLIC "JPL_TAGGED_LOGGING")
+        target_compile_definitions(JPLSpatial PUBLIC
+            "JPL_TAGGED_LOGGING"
+            "JPL_ENABLE_AVX2_FMA=ON"
+        )
     endif()
 endfunction()
 
