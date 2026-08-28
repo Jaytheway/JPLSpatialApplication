@@ -48,7 +48,7 @@ namespace JPL
 
 		JPL_INLINE void Initialize(JPL::ChannelMap ChannelMap)
 		{
-			[[maybe_unused]] const bool bInitialized = Panner.InitializeLUT(ChannelMap);
+			[[maybe_unused]] const bool bInitialized = Panner.Initialize(ChannelMap);
 			JPL_ASSERT(bInitialized, "Failed to initialize internal panner LUT.");
 		}
 

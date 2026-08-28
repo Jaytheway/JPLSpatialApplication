@@ -615,7 +615,7 @@ namespace JPL
             const uint32_t numTargetChannels = mPanner->GetNumChannels();
             const uint32_t channelMixMapSize = numSourceChannels * numTargetChannels;
 
-            static constexpr std::size_t cBufferCapacity = JPL::VBAPStandartTraits::MAX_CHANNEL_MIX_MAP_SIZE;
+            static constexpr std::size_t cBufferCapacity = JPL::VBAPStandardTraits::MAX_CHANNEL_MIX_MAP_SIZE;
 
             JPL::StaticArray<float, cBufferCapacity> channelMixMap(channelMixMapSize, 0.0f);
 
@@ -672,7 +672,7 @@ namespace JPL
         targetLayout.ForEachChannel([this](JPL::EChannel channel/*, uint32 index*/)
         {
             //if (channel != JPL::EChannel::LFE)
-            Points.emplace_back(JPL::VBAPStandartTraits::GetChannelVector(channel), 0.0f);
+            Points.emplace_back(JPL::VBAPStandardTraits::GetChannelVector(channel), 0.0f);
         });
     }
 
