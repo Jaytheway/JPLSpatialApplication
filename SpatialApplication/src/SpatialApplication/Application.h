@@ -54,16 +54,16 @@ namespace JPL
 		void Deserialize(const std::filesystem::path& filepath);
 		void Serialize(const std::filesystem::path& filepath) const;
 
-		static std::shared_ptr<JPLSpatialApplicationData> Load(const std::filesystem::path& filepath);
+		[[nodiscard]] static std::shared_ptr<JPLSpatialApplicationData> Load(const std::filesystem::path& filepath);
 
 	private:
-		static bool IsValidObject(const choc::value::Value& value);
-		static choc::value::Value TryParse(std::string_view settingsJSON);
+		[[nodiscard]] static bool IsValidObject(const choc::value::Value& value);
+		[[nodiscard]] static choc::value::Value TryParse(std::string_view settingsJSON);
 
-		choc::value::Value ToValue() const;
+		[[nodiscard]] choc::value::Value ToValue() const;
 		void FromValue(const choc::value::Value& value);
 
-		static choc::value::Value SerializeWindowStates();
+		[[nodiscard]] static choc::value::Value SerializeWindowStates();
 		static void DeserializeWindowStates(const choc::value::ValueView& data);
 
 	public:

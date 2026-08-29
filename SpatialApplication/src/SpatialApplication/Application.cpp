@@ -189,11 +189,11 @@ namespace JPL
 		try
 		{
 			choc::value::Value jsonObject = ToValue();
+			jsonObject.addMember(cWindowStatesType, SerializeWindowStates());
+
 			const std::string settingsStr = choc::json::toString(jsonObject, /* useLineBreaks */ true);
 			if (not settingsStr.empty())
 				choc::file::replaceFileWithContent(filepath, settingsStr);
-
-			SerializeWindowStates();
 		}
 		catch (const choc::file::Error& error)
 		{
