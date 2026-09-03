@@ -19,6 +19,7 @@
 
 #include "ImGuiUtils.h"
 
+#include "ImGui/Colour.h"
 #include "ImGui/ImGuiScopedUtils.h"
 
 namespace JPL::ImGuiEx

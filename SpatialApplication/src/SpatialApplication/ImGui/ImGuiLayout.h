@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "ImGui/ImGuiScopedUtils.h"
 #include "ImGui/ImGui.h"
 
 #include <JPLSpatial/Utilities/TypeUtilities.h>

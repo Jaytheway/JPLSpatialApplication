@@ -19,6 +19,8 @@
 
 #include "ImGuiScopedUtils.h"
 
+#include "ImGui/ImGui.h"
+
 namespace JPL::ImGuiEx
 {
 	ScopedDisable::ScopedDisable(bool disabled)
