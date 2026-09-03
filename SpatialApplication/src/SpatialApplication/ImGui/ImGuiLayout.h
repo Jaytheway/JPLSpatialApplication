@@ -352,5 +352,292 @@ namespace JPL::ImGuiEx
 
         Impl::PopMenuStyle();
     }
+    
+    //==========================================================================
+    /// Flexbox-like layout.
+    /// 
+    /// Works by "placing elements" with simple "fixed" vs "grow" sizing policy.
+    /// The elements are not actually placed, instead ImGui cursor is shifted.
+    /// 
+    /// Element defines Size or Weight it takes in parent Layout bounds.
+    /// It can contain a user draw function, or a nested Layout.
+    /// 
+    /// Layout defines the direction (or Axis) of Element placement and Spacing.
+    /// The root layout is used to ComputeSizes() and actually Draw() the Elements.
+    namespace Flex
+    {
+        enum class EAxis { Horizontal, Vertical };
+
+        //======================================================================
+        template<class LayoutOrDrawCb>
+        struct Element;
+
+        template<class T>
+        concept CElement = Type::CIsSpecializationOf<T, Element>;
+
+        template<CElement...Elements>
+        struct Layout;
+
+        template<class T>
+        concept CLayout = Type::CIsSpecializationOf<T, Layout>;
+
+        // Item draw callback can take: no parameters, item size float, or item screen position ImVec2 and item size float
+        template<class T>
+        concept CDrawCb = std::is_invocable_v<T> or std::is_invocable_v<T, float> or std::is_invocable_v<T, ImVec2, float>;
+
+        template<class T>
+        concept CLayoutOrDrawCb = CLayout<T> or CDrawCb<T>;
+
+        //======================================================================
+        /// Factory functions for Elements
+
+        template<CLayoutOrDrawCb LayoutOrDrawCb>
+        Element<LayoutOrDrawCb> Fixed(float size, LayoutOrDrawCb&& content)
+        {
+            return Element<LayoutOrDrawCb>{.Weight = 0.0f, .Size = size, .Content = std::forward<LayoutOrDrawCb>(content) };
+        }
+
+        template<CLayoutOrDrawCb LayoutOrDrawCb>
+        Element<LayoutOrDrawCb> Grow(float weight, LayoutOrDrawCb&& content)
+        {
+            return Element<LayoutOrDrawCb>{.Weight = weight, .Size = 0.0f, .Content = std::forward<LayoutOrDrawCb>(content) };
+        }
+
+        template<CLayoutOrDrawCb LayoutOrDrawCb>
+        Element<LayoutOrDrawCb> Grow(LayoutOrDrawCb&& content)
+        {
+            return Grow(1.0f, std::forward<LayoutOrDrawCb>(content));
+        }
+
+        //======================================================================
+        template<class LayoutOrDrawCb>
+        struct Element
+        {
+            // Cannot use concept in class template due to the order of declarations,
+            // therefore using static assert.
+            static_assert(CLayoutOrDrawCb<LayoutOrDrawCb>);
+
+            float Weight = 0.0f; // 0: fixed size, > 0: flex grow weight
+            float Size = 0.0f;   // Computed or assigned fixed pixel value
+
+            [[no_unique_address]] LayoutOrDrawCb Content;
+        };
+
+         /// Special kind of Element that simply adds empty space
+		auto Spacing(float size = 0.0f)
+        {
+			return Element{ .Weight = 0.0f, .Size = size, .Content = [size] { ImGui::Dummy(ImVec2(size, size)); } };
+		}
+        
+        //======================================================================
+        /// Factory functions for Layouts
+
+        template<CElement...Elements>
+        Layout<Elements...> Row(float spacing, Elements&&...elements)
+        {
+            return Layout<Elements...>(EAxis::Horizontal, spacing, std::forward<Elements>(elements)...);
+        }
+
+        template<CElement...Elements>
+        Layout<Elements...> Row(Elements&&...elements)
+        {
+            return Row(ImGui::GetStyle().ItemSpacing.x, std::forward<Elements>(elements)...);
+        }
+
+        template<CElement...Elements>
+        Layout<Elements...> Column(float spacing, Elements&&...elements)
+        {
+            return Layout<Elements...>(EAxis::Vertical, spacing, std::forward<Elements>(elements)...);
+        }
+
+        template<CElement...Elements>
+        Layout<Elements...> Column(Elements&&...elements)
+        {
+            return Column(ImGui::GetStyle().ItemSpacing.y, std::forward<Elements>(elements)...);
+        }
+
+        //======================================================================
+        /// Factory functions for nested Layouts. Return Element of some kind.
+
+        template<CElement...Elements>
+        auto ColumnGrow(float spacing, Elements&&...elements)
+        {
+            return Grow(spacing, Column(ImGui::GetStyle().ItemSpacing.y, std::forward<Elements>(elements)...));
+        }
+
+        template<CElement...Elements>
+        auto ColumnGrow(Elements&&...elements)
+        {
+            return Grow(Column(ImGui::GetStyle().ItemSpacing.y, std::forward<Elements>(elements)...));
+        }
+
+        template<CElement...Elements>
+        auto ColumnFixed(float size, Elements&&...elements)
+        {
+            return Fixed(size, Column(ImGui::GetStyle().ItemSpacing.y, std::forward<Elements>(elements)...));
+        }
+
+        template<CElement...Elements>
+        auto ColumnFixed(Elements&&...elements)
+        {
+            return Fixed(Column(ImGui::GetStyle().ItemSpacing.y, std::forward<Elements>(elements)...));
+        }
+
+        template<CElement...Elements>
+        auto RowGrow(float spacing, Elements&&...elements)
+        {
+            return Grow(spacing, Row(ImGui::GetStyle().ItemSpacing.x, std::forward<Elements>(elements)...));
+        }
+
+        template<CElement...Elements>
+        auto RowGrow(Elements&&...elements)
+        {
+            return Grow(Row(ImGui::GetStyle().ItemSpacing.x, std::forward<Elements>(elements)...));
+        }
+
+        template<CElement...Elements>
+        auto RowFixed(float size, Elements&&...elements)
+        {
+            return Fixed(size, Row(ImGui::GetStyle().ItemSpacing.x, std::forward<Elements>(elements)...));
+        }
+
+        template<CElement...Elements>
+        auto RowFixed(Elements&&...elements)
+        {
+            return Fixed(Row(ImGui::GetStyle().ItemSpacing.x, std::forward<Elements>(elements)...));
+        }
+
+        //======================================================================
+        template<CElement...Elements>
+        struct Layout
+        {
+            using TupleType = std::tuple<Elements...>;
+            static constexpr std::size_t cItemCount = std::tuple_size<TupleType>::value;
+
+            EAxis Axis = EAxis::Vertical;
+            float Spacing = 0.0f;
+            TupleType Content;
+
+            Layout(EAxis axis, float spacing, Elements&&...elements)
+                : Axis(axis)
+                , Spacing(spacing)
+                , Content(std::forward<Elements>(elements)...)
+            {
+            }
+
+            void ForEachItem(auto&& func)
+            {
+                std::apply([&func](auto&&... element)
+                {
+                    (std::invoke(func, element), ...);
+                }, Content);
+            }
+
+            void ForEachItem(auto&& func) const
+            {
+                std::apply([&func](auto&&... element)
+                {
+                    (std::invoke(func, element), ...);
+                }, Content);
+            }
+
+            void ComputeSizes(ImVec2 size)
+            {
+                ComputeSizes(size.x, size.y);
+            }
+
+            // Resolves flex-grow dimensions recursively across all branches
+            void ComputeSizes(float targetWidth, float targetHeight)
+            {
+                float availableSpace = (Axis == EAxis::Horizontal) ? targetWidth : targetHeight;
+                if (cItemCount > 1)
+                    availableSpace -= Spacing * (cItemCount - 1);
+
+                float totalWeight = 0.0f;
+                float fixedSum = 0.0f;
+                ForEachItem([&](auto&& element)
+                {
+                    if (element.Weight > 0.0f)
+                        totalWeight += element.Weight;
+                    else
+                        fixedSum += element.Size;
+                });
+
+                float remainingSpace = ImMax(0.0f, availableSpace - fixedSum);
+                float spacePerWeight = totalWeight > 0.0f ? (remainingSpace / totalWeight) : 0.0f;
+
+                ForEachItem([&](auto&& element)
+                {
+                    if (element.Weight > 0.0f)
+                        element.Size = element.Weight * spacePerWeight;
+
+                    // If the element is a nested layout box, tell it to evaluate its children recursively
+                    if constexpr (CLayout<decltype(element.Content)>)
+                    {
+                        if (Axis == EAxis::Horizontal)
+                            element.Content.ComputeSizes(element.Size, targetHeight);
+                        else
+                            element.Content.ComputeSizes(targetWidth, element.Size);
+                    }
+                });
+            }
+
+            void Draw() const
+            {
+                ImGui::BeginGroup();
+
+                ImVec2 cursor = ImGui::GetCursorScreenPos();
+
+                ForEachItem([&](auto&& element) mutable
+                {
+                    ImGui::SetCursorScreenPos(cursor);
+
+                    // Apply width constraints for the horizontal pass.
+                    // Skip 0-size elements, we don't want ImGui to fallback to "default element size"
+					Conditional<ScopedItemWidth> widthIf(Axis == EAxis::Horizontal and element.Size != 0.0f, element.Size);
+                    // TODO: we might want to implement element skipping for 0-size, but currently it doesn't work with Flex::Spacing()
+
+                    using ContentType = decltype(element.Content);
+
+                    // Render content (individual callback or nested layout)
+                    if constexpr (CLayout<ContentType>)
+                    {
+                        element.Content.Draw();
+                    }
+                    else
+                    {
+                        if constexpr (std::is_invocable_v<ContentType, ImVec2, float>)
+                        {
+                            // Item screen position and size
+                            std::invoke(element.Content, cursor, element.Size);
+                        }
+                        else if constexpr (std::is_invocable_v<ContentType, float>)
+                        {
+                            // Item size
+                            std::invoke(element.Content, element.Size);
+                        }
+                        else
+                        {
+                            // No parameters requested
+                            std::invoke(element.Content);
+                        }
+                    }
+
+                    if (Axis == EAxis::Horizontal)
+                    {
+                        // Advance horizontally
+						cursor.x += element.Size + Spacing;
+                    }
+                    else // Axis == EAxis::Vertical
+                    {
+                        // Advance vertically by element size, but at least by ImGui widget height
+						cursor.y += ImMax(ImGui::GetItemRectSize().y, element.Size) + Spacing;
+                    }
+                });
+
+                ImGui::EndGroup();
+            }
+        };
+    }
 
 } // namespace JPL::ImGuiEx
