@@ -28,6 +28,7 @@
 #include "ImGui/Colour.h"
 #include "ImGui/ImGuiStyling.h"
 #include "ImGui/ImGuiLayout.h"
+#include "ImGui/ImGuiLayoutFlex.h"
 #include "ImGui/ImGuiUtils.h"
 #include "ImGui/ImGuiScopedUtils.h"
 #include "ImGui/ImGuiWidgets.h"
