@@ -292,11 +292,15 @@ namespace JPL::ImGuiEx::Flex
     public:
         Layout(TupleType&& elementsTuple, EAxis axis, float spacing);
         Layout(EAxis axis, float spacing, Elements&&...elements);
+        
+        // Resolve flex layout sizes and draw
+        void ComputeSizesAndDraw(ImVec2 size) { ComputeSizes(size); Draw(); }
 
         // Resolve flex-grow dimensions recursively across all branches
         void ComputeSizes(ImVec2 size) { ComputeSizes(size.x, size.y); }
 
-        // Resolve flex-grow dimensions recursively across all branches
+        // Resolve flex-grow dimensions recursively across all branches.
+        // If size hasn't changed, the layout won't be recomputed.
         void ComputeSizes(float targetWidth, float targetHeight);
 
         // Draw the layout
@@ -339,7 +343,7 @@ namespace JPL::ImGuiEx::Flex
         float mSpacing = 0.0f;
         TupleType mContent;
         float mDesiredSize[std::max(1llu, cItemCount)] = {};
-        float mTargetLayoutSize = 0.0f;
+        float mMainAxisSize = 0.0f;
         float mCrossAxisSize = 0.0f;
     };
 
@@ -460,7 +464,7 @@ namespace JPL::ImGuiEx::Flex
         const float crossAxisSpace = (mAxis == EAxis::Horizontal) ? targetHeight : targetWidth;
 
         // We don't want to recalculated the entire layour if content region hasn't changed.
-        if (Math::IsNearlyEqual(availableSpace, mTargetLayoutSize))
+        if (Math::IsNearlyEqual(availableSpace, mMainAxisSize))
         {
             if (not Math::IsNearlyEqual(crossAxisSpace, mCrossAxisSize))
             {
@@ -472,7 +476,7 @@ namespace JPL::ImGuiEx::Flex
         }
 
         mCrossAxisSize = crossAxisSpace;
-        mTargetLayoutSize = availableSpace;
+        mMainAxisSize = availableSpace;
 
         if (cItemCount > 1)
             availableSpace -= mSpacing * (cItemCount - 1);
