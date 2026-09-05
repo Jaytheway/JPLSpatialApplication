@@ -220,6 +220,15 @@ namespace JPL
 	template<class T, CUndoableDataType Type, class Model = void*>
 	class PropertyEdit;
 
+	// Sometimes ImGui widget labels may start with "##" to let ImGui know to not draw
+	// the text, for our Undo/Redo display we want to remove that prefix.
+	constexpr std::string_view SanitizePropertyLabel(std::string_view label)
+	{
+		if (label.starts_with("##"))
+			label.remove_prefix(2);
+		return label;
+	}
+
 	//======================================================================
 	inline CommandHistory::CommandHistory()
 	{
@@ -508,7 +517,7 @@ namespace JPL
 			: mDataEdit(std::move(undoable))
 			, mOldValue(std::move(oldValue.Value))
 			, mNewValue(mDataEdit.GetValue())
-			, mPropertyLabel(propertyLabel)
+			, mPropertyLabel(SanitizePropertyLabel(propertyLabel))
 		{}
 
 		void Execute() override { if (mNewValue) mDataEdit.SetValue(*mNewValue); }
@@ -595,7 +604,7 @@ namespace JPL
 		PropertyEdit(Undoable<T, Type, Model> undoable, std::string_view propertyLabel = "")
 			: mUndoable(std::move(undoable))
 			, mInitialValue(mUndoable ? mUndoable.GetValue() : std::optional<T>{})
-			, mPropertyLabel(propertyLabel)
+			, mPropertyLabel(SanitizePropertyLabel(propertyLabel))
 		{}
 
 		std::unique_ptr<IUndoableCommand> CreateCommandIfModified() const override
