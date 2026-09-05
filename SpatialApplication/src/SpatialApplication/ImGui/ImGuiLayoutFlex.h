@@ -166,21 +166,18 @@ namespace JPL::ImGuiEx::Flex
         };
     }
 
-        /// Special kind of Element that simply adds empty space
+    /// Special kind of Element that simply adds empty space
 	auto Spacing(float size = 0.0f)
     {
-        // We need to make sure to pass non-zero size so that ImGui can ItemAdd the ItemSpacing.
-        // ImGui uses it as default value to move cursor when size is 0.
-        // But this will also ensure the LastItemData is updated as well and we can use it in our Layout::Draw().
-        //const ImVec2 dummySize = size == 0.0f ? ImGui::GetStyle().ItemSpacing : ImVec2(size, size);
-			
-        return Element{ .Weight = 0, .Size = size, .Content = [] {}, ._Tag = Impl::SpacerTag{} };
+        // Note: Dummy() is required by ImGui to legally extend the container size
+        return Element{ .Weight = 0, .Size = size, .Content = [] { ImGui::Dummy(ImVec2(0.0f, 0.0f)); }, ._Tag = Impl::SpacerTag{} };
 	}
 
     /// Special kind of Element that takes up space with grow factor, but doesn't draw anything
     auto Spring(uint16 weight = 1, float minSize = 0.0f)
     {
-        return Element{ .Weight = weight, .Size = minSize, .Content = [] {}, ._Tag = Impl::SpringTag{} };
+        // Note: Dummy() is required by ImGui to legally extend the container size
+        return Element{ .Weight = weight, .Size = minSize, .Content = [] { ImGui::Dummy(ImVec2(0.0f, 0.0f)); }, ._Tag = Impl::SpringTag{} };
     }
 
     //==========================================================================
@@ -584,21 +581,20 @@ namespace JPL::ImGuiEx::Flex
 
         ForEachItem([&](auto&& element, std::size_t i)
         {
-            ImGui::SetCursorScreenPos(cursor);
-
             const float elementSize = mDesiredSize[i];
 
-            // This might never happen
+            // This might trigger for fully contracted grow items (like Springs)
             if (elementSize <= 0.0f)
                 return;
+
+            // Change only if we have size and ImGui items to submit
+            ImGui::SetCursorScreenPos(cursor);
 
             // Apply width constraints for the horizontal pass.
             Conditional<ScopedItemWidth> widthIf(mAxis == EAxis::Horizontal, elementSize);
 
             using ElementType = std::remove_cvref_t<decltype(element)>;
             using ContentType = decltype(element.Content);
-
-            const ImVec2 itemRectMax = ImGui::GetItemRectMax();
 
             static constexpr bool bIsUtilItem =
                 Impl::HasTag<ElementType, Impl::SpacerTag> or
@@ -628,8 +624,6 @@ namespace JPL::ImGuiEx::Flex
                     std::invoke(element.Content);
                 }
             }
-
-            const ImVec2 newItemRectMax = ImGui::GetItemRectMax();
 
             if (mAxis == EAxis::Horizontal)
             {
