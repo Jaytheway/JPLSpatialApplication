@@ -105,30 +105,41 @@ namespace JPL
 		
 		using namespace JPL::ImGuiEx;
 
-		LayoutHorizontal("Props Layout", [&]
+		GUI::PropertyGEQ("RT60",
+						 Undoable(mModel, &LateReverbModel::T60),
+						 cBandCenters,
+						 LateReverbModel::cMinReverbTime,
+						 LateReverbModel::cMaxReverbTime,
+						 ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 3.0f));
+
+		ImGui::SameLine();
+
+		auto ERLevelSlider = [&] { GUI::PropertySlider("##ER Level", Undoable(mModel, &LateReverbModel::DryLevel), 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" }); };
+		auto LRLevelSlider = [&] { GUI::PropertySlider("##Reverb Level", Undoable(mModel, &LateReverbModel::WetLevel), 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" }); };
+		auto showIRCheckbox = [&] { ImGuiEx::Checkbox("Show IR", JPLSpatialApplication::GetWindowState(Names::cReverbPreviewWindow).bOpen); };
+
+		auto reverbSourceCombo = [&]
 		{
-			GUI::PropertyGEQ("RT60",
-							 Undoable(mModel, &LateReverbModel::T60),
-							 cBandCenters,
-							 LateReverbModel::cMinReverbTime,
-							 LateReverbModel::cMaxReverbTime,
-							 ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 3.0f));
+			GUI::PropertyCombo("##Source", Undoable(mModel, &LateReverbModel::ReverbSource));
+			ImGuiEx::SetTooltip("The source of reverb parameters.");
+		};
 
-			LayoutVertical("vert", [&]
-			{
-				// ImGui doesn't include label size into item size calculation,
-				// which causes lable to be cropped out, so we have to manually
-				// set the width and factor in label size.
-				const float maxWidth = 140.0f;
-				const float labelSize = 100.0f; // arbitrary number to fit our label
-				ScopedItemWidth width(ImMin(maxWidth, ImGui::GetContentRegionAvail().x - labelSize));
+		const Flex::Params sliderColumn{ .Weight = 1, .Size = 140.0f, .MaxSize = 200.0f };
+		const float frameHeight = ImGui::GetFrameHeight();
+		const float sliderLabelSize = 80.0f; // arbitrary number to fit our labels
 
-				GUI::PropertySlider("ER Level", Undoable(mModel, &LateReverbModel::DryLevel), 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
-				GUI::PropertySlider("Reverb Level", Undoable(mModel, &LateReverbModel::WetLevel), 0.0f, 1.0f, SliderConfig{ .Fmt = "%.2f" });
+		// Row of two columns
+		static Flex::Layout layout =
+			Flex::Row()
+			.Add(Flex::Item(sliderColumn,
+							Flex::Column()
+							.AddFixed(frameHeight,
+									  Flex::Labeled(ERLevelSlider, "ER Level", sliderLabelSize),
+									  Flex::Labeled(LRLevelSlider, "Reverb Level", sliderLabelSize),
+									  showIRCheckbox)))
+			.AddFixed(160.0f, Flex::Labeled(reverbSourceCombo, "Source"));
 
-				ImGuiEx::Checkbox("Show IR", JPLSpatialApplication::GetWindowState(Names::cReverbPreviewWindow).bOpen);
-			});
-		});
+		layout.ComputeSizesAndDraw(ImGui::GetContentRegionAvail());
 	}
 
 	void LateReverbGUI::DrawPreview()
