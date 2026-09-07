@@ -6,7 +6,7 @@
 // ╚█████╔╝██║         ███████╗██║██████╔╝███████║
 //  ╚════╝ ╚═╝         ╚══════╝╚═╝╚═════╝ ╚══════╝
 //
-//   Copyright Jaroslav Pevno, JPL Spatial Application is offered under the terms of the ISC license:
+//   Copyright Jaroslav Pevno 2026, JPL Spatial Application is offered under the terms of the ISC license:
 //
 //   Permission to use, copy, modify, and/or distribute this software for any purpose with or
 //   without fee is hereby granted, provided that the above copyright notice and this permission
@@ -82,38 +82,42 @@ namespace JPL::ImGuiEx::Flex
     template<class T>
     concept CLayoutOrDrawCb = CLayout<T> or CDrawCb<T>;
 
+    // rvalue reference or copy of CLayout or CDrawCb
+    template<class T>
+    concept CLayoutOrDrawCbParam = std::constructible_from<std::decay_t<T>, T> and (CLayout<std::remove_reference_t<T>> or CDrawCb<std::remove_reference_t<T>>);
+
     //==========================================================================
     /// Factory functions for Elements
 
     // Make a Flex element with specified parameters
-    template<CLayoutOrDrawCb LayoutOrDrawCb>
-    Element<LayoutOrDrawCb> Item(Params params, LayoutOrDrawCb&& content)
+    template<CLayoutOrDrawCbParam LayoutOrDrawCb>
+    auto Item(Params params, LayoutOrDrawCb&& content)
     {
-        return Element<LayoutOrDrawCb>{
+        return Element<std::remove_reference_t<LayoutOrDrawCb>>{
             .Weight = params.Weight,
             .Size = params.Size,
             .MaxSize = params.MaxSize,
-            .Content = std::forward<LayoutOrDrawCb>(content)
+            .Content = std::move(content)
         };
     }
         
     // Make a Flex element with fixed size and no grow factor
     template<CLayoutOrDrawCb LayoutOrDrawCb>
-    Element<LayoutOrDrawCb> Fixed(float size, LayoutOrDrawCb&& content)
+    auto Fixed(float size, LayoutOrDrawCb&& content)
     {
         return Item({ .Size = size }, std::forward<LayoutOrDrawCb>(content));
     }
 
     // Make a Flex element with any size and specific grow factor
     template<CLayoutOrDrawCb LayoutOrDrawCb>
-    Element<LayoutOrDrawCb> Grow(uint16 weight, LayoutOrDrawCb&& content)
+    auto Grow(uint16 weight, LayoutOrDrawCb&& content)
     {
         return Item({ .Weight = weight }, std::forward<LayoutOrDrawCb>(content));
     }
 
     // Make a Flex element with any size and default grow factor 1.
     template<CLayoutOrDrawCb LayoutOrDrawCb>
-    Element<LayoutOrDrawCb> Grow(LayoutOrDrawCb&& content)
+    auto Grow(LayoutOrDrawCb&& content)
     {
         return Item({ .Weight = 1 }, std::forward<LayoutOrDrawCb>(content));
     }
@@ -140,16 +144,16 @@ namespace JPL::ImGuiEx::Flex
         //! Note: if the factories belowe won't be utilized, they can be removed.
 
         // If this Element's Content is a Layout, this will return Layout with added Grow Element.
-        template<CLayoutOrDrawCb T>
+        template<CLayoutOrDrawCbParam T>
         auto AddGrow(uint16 weight, T&& content) && requires (CLayout<LayoutOrDrawCb>);
 
         // If this Element's Content is a Layout, this will return Layout with added Grow Element,
         // with default weight 1.0f.
-        template<CLayoutOrDrawCb T>
+        template<CLayoutOrDrawCbParam T>
         auto AddGrow(T&& content) && requires (CLayout<LayoutOrDrawCb>);
 
         // If this Element's Content is a Layout, this will return Layout with added Fixed Element.
-        template<CLayoutOrDrawCb T>
+        template<CLayoutOrDrawCbParam T>
         auto AddFixed(float size, T&& content) && requires (CLayout<LayoutOrDrawCb>);
     };
 
@@ -233,7 +237,7 @@ namespace JPL::ImGuiEx::Flex
     template<CElement...Elements>
     auto ColumnGrow(float spacing, Elements&&...elements)
     {
-        return Grow(spacing, Column(ImGui::GetStyle().ItemSpacing.y, std::forward<Elements>(elements)...));
+        return Grow(Column(spacing, std::forward<Elements>(elements)...));
     }
 
     // Make a vertical Flex layout with default elements spacing,
@@ -257,7 +261,7 @@ namespace JPL::ImGuiEx::Flex
     template<CElement...Elements>
     auto RowGrow(float spacing, Elements&&...elements)
     {
-        return Grow(spacing, Row(ImGui::GetStyle().ItemSpacing.x, std::forward<Elements>(elements)...));
+        return Grow(Row(spacing, std::forward<Elements>(elements)...));
     }
 
     // Make a horizontal Flex layout with default elements spacing,
@@ -281,7 +285,7 @@ namespace JPL::ImGuiEx::Flex
     struct Layout
     {
     public:
-        using TupleType = std::tuple<Elements...>;
+        using TupleType = std::tuple<std::remove_reference_t<Elements>...>;
 
         // Number of child elements in this layout
         static constexpr std::size_t cItemCount = std::tuple_size<TupleType>::value;
@@ -314,15 +318,15 @@ namespace JPL::ImGuiEx::Flex
         auto AddSpring(uint16 weight = 1, float size = 0.0f) &&;
 
         // Add default grow element(s) to layout (with weight 1)
-        template<CLayoutOrDrawCb ...LayoutOrDrawCb>
+        template<CLayoutOrDrawCbParam ...LayoutOrDrawCb>
         auto AddGrow(LayoutOrDrawCb&&...contents) &&;
 
         // Add grow element(s) to layout with specific proportion
-        template<CLayoutOrDrawCb ...LayoutOrDrawCb>
+        template<CLayoutOrDrawCbParam ...LayoutOrDrawCb>
         auto AddGrow(uint16 weight, LayoutOrDrawCb&&...contents) &&;
 
         // Add fixed size element(s) to layout with specific size
-        template<CLayoutOrDrawCb ...LayoutOrDrawCb>
+        template<CLayoutOrDrawCbParam ...LayoutOrDrawCb>
         auto AddFixed(float size, LayoutOrDrawCb&&...contents) &&;
 
     private:
@@ -370,7 +374,7 @@ namespace JPL::ImGuiEx::Flex
     /// Element
 
     template<class LayoutOrDrawCb, class ElementTag>
-    template<CLayoutOrDrawCb T>
+    template<CLayoutOrDrawCbParam T>
     auto Element<LayoutOrDrawCb, ElementTag>::AddGrow(uint16 weight, T&& content) && requires (CLayout<LayoutOrDrawCb>)
     {
         return Item({
@@ -382,14 +386,14 @@ namespace JPL::ImGuiEx::Flex
     }
 
     template<class LayoutOrDrawCb, class ElementTag>
-    template<CLayoutOrDrawCb T>
+    template<CLayoutOrDrawCbParam T>
     auto Element<LayoutOrDrawCb, ElementTag>::AddGrow(T&& content) && requires (CLayout<LayoutOrDrawCb>)
     {
         return AddGrow(1.0f, std::forward<T>(content));
     }
 
     template<class LayoutOrDrawCb, class ElementTag>
-    template<CLayoutOrDrawCb T>
+    template<CLayoutOrDrawCbParam T>
     auto Element<LayoutOrDrawCb, ElementTag>::AddFixed(float size, T&& content) && requires (CLayout<LayoutOrDrawCb>)
     {
         return Item({
@@ -681,21 +685,21 @@ namespace JPL::ImGuiEx::Flex
     }
     
     template<CElement...Elements>
-    template<CLayoutOrDrawCb ...LayoutOrDrawCb>
+    template<CLayoutOrDrawCbParam ...LayoutOrDrawCb>
     auto Layout<Elements...>::AddGrow(LayoutOrDrawCb&&...contents) &&
     {
         return std::move(*this).Add(Grow(1.0f, std::forward<LayoutOrDrawCb>(contents))...);
     }
 
     template<CElement...Elements>
-    template<CLayoutOrDrawCb ...LayoutOrDrawCb>
+    template<CLayoutOrDrawCbParam ...LayoutOrDrawCb>
     auto Layout<Elements...>::AddGrow(uint16 weight, LayoutOrDrawCb&&...contents) &&
     {
         return std::move(*this).Add(Grow(weight, std::forward<LayoutOrDrawCb>(contents))...);
     }
 
     template<CElement...Elements>
-    template<CLayoutOrDrawCb ...LayoutOrDrawCb>
+    template<CLayoutOrDrawCbParam ...LayoutOrDrawCb>
     auto Layout<Elements...>::AddFixed(float size, LayoutOrDrawCb&&...contents) &&
     {
         return std::move(*this).Add(Fixed(size, std::forward<LayoutOrDrawCb>(contents))...);
