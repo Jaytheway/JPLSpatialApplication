@@ -430,7 +430,7 @@ namespace JPL
                 ImGuiEx::Checkbox("Show Speakers", bDrawSpeakers);
             });
         });
-
+#endif
         Layout<Spacer, Spacer>();
 
         const ImVec2 availableSpace = ImGui::GetContentRegionAvail();
