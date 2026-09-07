@@ -64,8 +64,20 @@ namespace JPL
             {
                 ScopedItemWidth width(200.0f);
 
-                //? Not ideal, the spacing depends on the font, but works for now6
-                ImGui::TextDisabled("       X                   Y                   Z");
+                auto drawChar = [](char character)
+                {
+                    return [character]
+                    {
+                        char str[2]{ character, '\0' };
+                        ImGui::TextDisabled(str);
+                    };
+                };
+
+                static Flex::Layout axesHeader =
+                    Flex::Row(0, Flex::AlignHor(drawChar('X')), Flex::AlignHor(drawChar('Y')), Flex::AlignHor(drawChar('Z')));
+                
+                axesHeader.ComputeSizesAndDraw(ImVec2(200.0f, ImGui::GetFrameHeight()));
+
                 ImGui::Spring();
 
                 const InputVec3Config roomSizePropconfig
