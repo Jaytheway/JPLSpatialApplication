@@ -42,23 +42,34 @@ if (MSVC)
 endif()
 
 # Compiler and linker options.
+set(CMAKE_CXX_FLAGS_DISTRIBUTION "${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_EXE_LINKER_FLAGS_DISTRIBUTION "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
+set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+set(CMAKE_EXE_LINKER_FLAGS_PROFILE "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO}")
 if(MSVC)
-  # MSVC flags
-  set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi")
-  set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG")
-  set(CMAKE_CXX_FLAGS_DISTRIBUTION "/O2 /DNDEBUG")
-  set(CMAKE_CXX_FLAGS_PROFILE "/O2 /Zi") # Use /O2 for optimization, /Zi for debug info
-
-  # MSVC linker flags for debug information
-  set(CMAKE_EXE_LINKER_FLAGS_DEBUG "/DEBUG")
-  set(CMAKE_EXE_LINKER_FLAGS_PROFILE "/DEBUG")
-else() # Assumed to be GCC/Clang
-  # GCC/Clang flags
-  set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-  set(CMAKE_CXX_FLAGS_DISTRIBUTION "-O3 -DNDEBUG")
-  set(CMAKE_CXX_FLAGS_PROFILE "-O3 -g")
+    set(
+        CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
+        "$<$<CONFIG:Debug,RelWithDebInfo,Profile>:ProgramDatabase>"
+    )
 endif()
+#if(MSVC)
+#  # MSVC flags
+#  set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi")
+#  set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG")
+#  set(CMAKE_CXX_FLAGS_DISTRIBUTION "/O2 /DNDEBUG")
+#  set(CMAKE_CXX_FLAGS_PROFILE "/O2 /Zi") # Use /O2 for optimization, /Zi for debug info
+#  set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+#
+#  # MSVC linker flags for debug information
+#  set(CMAKE_EXE_LINKER_FLAGS_DEBUG "/DEBUG")
+#  set(CMAKE_EXE_LINKER_FLAGS_PROFILE "/DEBUG")
+#else() # Assumed to be GCC/Clang
+#  # GCC/Clang flags
+#  set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+#  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+#  set(CMAKE_CXX_FLAGS_DISTRIBUTION "-O3 -DNDEBUG")
+#  set(CMAKE_CXX_FLAGS_PROFILE "-O3 -g")
+#endif()
   
 # Set output directories
 set(OUTPUT_BASE "${CMAKE_SOURCE_DIR}/bin")
