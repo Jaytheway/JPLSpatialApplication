@@ -25,6 +25,12 @@
 
 namespace JPL
 {
+	enum EReverbSource : int
+	{
+		Geometry = 0,	// Static geometry is used to precompute reverb parameters
+		RayTracer		// Dynamic ray tracer is used to suply reverb parameters
+	};
+
 	class LateReverbModel
 	{
 	public:
@@ -37,5 +43,8 @@ namespace JPL
 
 		Property<float> DryLevel{ 1.0f };	// ER level bypassing reveb
 		Property<float> WetLevel{ 0.75f };	// Late Reverb output level
+
+		// GUI-specific
+		Property<EReverbSource> ReverbSource{ EReverbSource::Geometry };
 	};
 } // namespace JPL
