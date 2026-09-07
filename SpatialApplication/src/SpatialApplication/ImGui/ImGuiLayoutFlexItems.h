@@ -74,16 +74,16 @@ namespace JPL::ImGuiEx::Flex
 
 	/// Align element horizontally to middle third of the available space.
 	template<CElement Element>
-	auto AlignHor(Element&& element)
+	auto CentreHor(Element&& element)
 	{
 		return RowGrow(0, Spring(), std::forward<Element>(element), Spring());
 	}
 
 	/// Align item horizontally to middle third of the available space.
 	template<CLayoutOrDrawCbParam Content>
-	auto AlignHor(Content&& content, Params params = { .Weight = 1 })
+	auto CentreHor(Content&& content, Params params = { .Weight = 1 })
 	{
-		return AlignHor(Item(params, std::forward<Content>(content)));
+		return CentreHor(Item(params, std::forward<Content>(content)));
 	}
 
 } // namespace JPL::ImGuiEx::Flex
