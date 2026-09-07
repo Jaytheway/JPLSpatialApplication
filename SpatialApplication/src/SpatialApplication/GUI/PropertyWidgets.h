@@ -31,6 +31,10 @@
 
 namespace JPL::GUI
 {
+	// TODO: move it to JPL type traits header
+	template<class E>
+	concept CEnum = std::is_enum_v<E>;
+
 	template<ImGuiEx::CSliderVType T, class...Args>
 	bool PropertySlider(const char* label,
 				const Undoable<T, Args...>& undoable,
@@ -90,6 +94,11 @@ namespace JPL::GUI
 					   int& selectedItemIndex,
 					   std::span<const T> items,
 					   const GetNameCb& getNameCb,
+					   int popupMaxHeightInItems = -1);
+
+	template<CEnum T, class...Args>
+	bool PropertyCombo(const char* label,
+					   const Undoable<T, Args...>& undoable,
 					   int popupMaxHeightInItems = -1);
 
 } // namespace JPL::GUI
@@ -358,5 +367,30 @@ namespace JPL::GUI
 		}
 
 		return bModified;
+	}
+
+	template<CEnum T, class ...Args>
+	bool PropertyCombo(const char* label, const Undoable<T, Args...>& undoable, int popupMaxHeightInItems)
+	{
+		static constexpr auto items = magic_enum::enum_values<T>();
+
+		std::optional<T> currentValue = undoable.GetValue();
+
+		int selectedIndex =
+			currentValue.has_value()
+			? magic_enum::enum_index(currentValue.value()).value_or(-1)
+			: - 1;
+
+		auto getName = [](T item, int index) -> const char*
+		{
+			return magic_enum::enum_name(item).data();
+		};
+
+		return PropertyCombo(label,
+							 undoable,
+							 selectedIndex,
+							 std::span<const T>(items),
+							 getName,
+							 popupMaxHeightInItems);
 	}
 } // namespace JPL::GUI
