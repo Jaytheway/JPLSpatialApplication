@@ -181,6 +181,145 @@ namespace JPL
 
         static bool bDrawSpeakers = true;
 
+#if 1
+        const SliderConfig sliderConfig{ .Fmt = "%.2f" };
+        auto focusSlider = [&]
+        {
+            GUI::PropertySlider("##Focus", Undoable(mModel->VBAPModel, &VBAPModel::Focus), 0.0f, 1.0f, sliderConfig);
+        };
+
+        auto sourceSizeSlider = [&]
+        {
+            //! Should the source size be in visualization model or room model?
+            GUI::PropertySlider("##Source Size", Undoable(mModel->VBAPModel, &VBAPModel::SourceSize), 0.1f, 100.0f, SliderConfig{ .Fmt = "%.1f" });
+        };
+
+        auto spreadSlider = [&]
+        {
+            // If set to calculate spread from source size,
+            // just display the current value computed from the source size
+            if (mModel->VBAPModel->SpreadFromSourceSize.Get())
+            {
+                const JPL::MinimalVec3 sourcePosition = mModel->VBAPModel->SourcePosition.Get();
+
+                float distance;
+                const JPL::MinimalVec3 direction =
+                    sourcePosition.SafeNormal(distance, /* fallback direction */ JPL::MinimalVec3(0.0f, 0.0f, -1.0f));
+
+                ScopedDisable _(true);
+
+                float spread = JPL::GetSpreadFromSourceSize(mModel->VBAPModel->SourceSize.Get(), distance);
+                Slider("##Spread", spread, 0.0f, 1.0f, sliderConfig);
+            }
+            else
+            {
+                GUI::PropertySlider("##Spread", Undoable(mModel->VBAPModel, &VBAPModel::Spread), 0.0f, 1.0f, sliderConfig);
+            }
+        };
+
+        auto spreadCheckboxes = [&]
+        {
+            GUI::PropertyCheckbox("Spread From Source Size", Undoable(mModel->VBAPModel, &VBAPModel::SpreadFromSourceSize));
+            GUI::PropertyCheckbox("Spread From Height", Undoable(mModel->VBAPModel, &VBAPModel::HeightSpread));
+        };
+
+        auto sourceOrientationCheckbox = [&]
+        {
+            GUI::PropertyCheckbox("Source Orientation", Undoable(mModel->VBAPModel, &VBAPModel::UseSourceOrientation));
+        };
+
+        auto sourceChannelSetCombo = [&]
+        {
+            ScopedDisable disable(mModel->ConnectToAudioPlayer.Get());
+
+            int selectedSet =
+                std::ranges::find(
+                    detail::ValidSourceMasks,
+                    mModel->SourceChannelMap.Get()) - std::ranges::begin(detail::ValidSourceMasks);
+
+            auto getSourceSetNameCb = [](const JPL::NamedChannelMask& channelMask, int /*index*/) -> const char*
+            {
+                return channelMask.Name.data();
+            };
+
+            GUI::PropertyCombo("##Source Channel Set",
+                               Undoable(mModel, &VBAPVisualizationModel::SourceChannelMap),
+                               selectedSet,
+                               std::span(detail::ValidSourceMasks),
+                               getSourceSetNameCb);
+        };
+
+        auto outputChannelSetCombo = [&]
+        {
+            ScopedDisable disable(mModel->ConnectToAudioPlayer.Get());
+
+            int selectedOutputSet =
+                std::ranges::find(
+                    detail::ValidTrargetMasks,
+                    mModel->TargetChannelMap.Get()) - std::ranges::begin(detail::ValidTrargetMasks);
+
+            auto getOutputSetNameCb = [](const JPL::NamedChannelMask& channelMask, int /*index*/) -> const char*
+            {
+                return channelMask.Name.data();
+            };
+
+            GUI::PropertyCombo("##Output Channel Set",
+                               Undoable(mModel, &VBAPVisualizationModel::TargetChannelMap),
+                               selectedOutputSet,
+                               std::span(detail::ValidTrargetMasks),
+                               getOutputSetNameCb);
+        };
+
+        auto connectToAudioPlayerCheckbox = [&]
+        {
+            GUI::PropertyCheckbox("Connect to Audio Player", Undoable(mModel, &VBAPVisualizationModel::ConnectToAudioPlayer));
+
+            SetTooltip("If enebaled, visualization is drawn for the Source & Output sets\n"
+                       "currently used by the Audio Player.\n"
+                       "\n"
+                       "Disabling is meant for checking out visualization for the channel\n"
+                       "layouts not available on the user system.");
+        };
+
+        auto showSpeakersCheckbox = [&]
+        {
+            // TODO: do we want undo/redo for this?
+            ImGuiEx::Checkbox("Show Speakers", bDrawSpeakers);
+        };
+
+        const Flex::Params flexInput{
+            .Weight = 1,
+            .Size = 100.0f,
+            .MaxSize = 200.0f
+        };
+
+        const float labelSize = 80.0f;
+        const float longLabelSize = 120.0f;
+        const float itemHeight = ImGui::GetFrameHeight();
+        
+        // Note: if this Draw function is called from multiple pannels,
+        // we'd need to use different layout instances for each call, or it would be recomputing sizes constantly
+        static Flex::Layout propertiesLayout =
+            Flex::Row()
+            .AddGrow(Flex::Column() // Vis Properties
+                      .AddFixed(itemHeight,
+                                Flex::Labeled(focusSlider, flexInput, "Focus", labelSize),
+                                Flex::Labeled(spreadSlider, flexInput, "Spread", labelSize),
+                                Flex::Labeled(sourceSizeSlider, flexInput, "Source Size", labelSize))
+                      .AddSpacing()
+                      .AddFixed(itemHeight * 2.0f, spreadCheckboxes))
+            .AddGrow(Flex::Column() // Extra props
+                     .AddFixed(itemHeight, sourceOrientationCheckbox)
+                     .AddSpacing()
+                     .AddFixed(itemHeight,
+                               Flex::Labeled(sourceChannelSetCombo, flexInput, "Source Channel Set", longLabelSize),
+                               Flex::Labeled(outputChannelSetCombo, flexInput, "Output Channel Set", longLabelSize),
+                               connectToAudioPlayerCheckbox,
+                               showSpeakersCheckbox));
+
+        propertiesLayout.ComputeSizesAndDraw(ImVec2(ImMax(370.0f, ImGui::GetContentRegionAvail().x), 300.0f));
+
+#else //? left for benchmarking old layout API vs new Flex
         LayoutHorizontal("Properties", [&]
         {
             const float halfWidth = ImGui::GetContentRegionAvail().x * 0.5f;
