@@ -25,6 +25,8 @@
 #include <JPLSpatial/Math/SIMD.h>
 #include <JPLSpatial/Math/MinimalVec3.h>
 
+#include <magic_enum/magic_enum.hpp>
+
 #include <functional>
 #include <span>
 #include <type_traits>
