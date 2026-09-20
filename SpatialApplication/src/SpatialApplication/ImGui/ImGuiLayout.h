@@ -163,41 +163,43 @@ namespace JPL::ImGuiEx
 
         if (p_open == nullptr or (*p_open) == true)
         {
-            const bool bDrawCustomTitleBar = !(config.Flags & ImGuiWindowFlags_NoTitleBar);
+            bool bDrawCustomTitleBar = !(config.Flags & ImGuiWindowFlags_NoTitleBar);
+
+            //? Currently dock host is drawn outside of this call and uses different font and frame padding values,
+            //? which breaks our customization hack. So we just ingore dockeck windows.
+            ImGuiWindow* existingWindow = ImGui::FindWindowByName(name);
+            bDrawCustomTitleBar = bDrawCustomTitleBar and not (existingWindow and existingWindow->DockIsActive);
 
             // Increase the title bar height and set bold font
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { ImGui::GetStyle().FramePadding.x, 6.0f });
-            ImGui::PushFont(GUI::GetBoldFont(), ImGui::GetFontSize());
-            
+            if (bDrawCustomTitleBar)
+            {
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { ImGui::GetStyle().FramePadding.x, 6.0f });
+                ImGui::PushFont(GUI::GetBoldFont(), ImGui::GetFontSize());
+            }
+
             // This will prevent ImGui from drawing collapse button
             // and we can draw our own
             auto& style = ImGui::GetStyle();
             const auto windowMenuButtonPosBckp = style.WindowMenuButtonPosition;
             style.WindowMenuButtonPosition = ImGuiDir_None;
 
-            if (ImGui::Begin(name, nullptr, config.Flags))
+            const bool bVisible = ImGui::Begin(name, nullptr, config.Flags);
+
+            style.WindowMenuButtonPosition = windowMenuButtonPosBckp;
+
+            // If window is visible, not visible, collapsed,
+            // we still want to draw our stuff
+            if (bDrawCustomTitleBar)
             {
+                Impl::RenderCustomTitleBarDecorations(ImGui::GetCurrentWindow(), name, p_open);
                 ImGui::PopStyleVar(); // FramePadding
                 ImGui::PopFont();
-                style.WindowMenuButtonPosition = windowMenuButtonPosBckp;
+            }
 
-                if (bDrawCustomTitleBar)
-                    Impl::RenderCustomTitleBarDecorations(ImGui::GetCurrentWindow(), name, p_open);
-
-                // Draw window contents
+            // Draw window contents
+            if (bVisible)
                 draw();
-            }
-            else
-            {
-                // Window is either not visible or collapsed,
-                // we still want to draw our stuff if it's collapsed
-                if (bDrawCustomTitleBar)
-                    Impl::RenderCustomTitleBarDecorations(ImGui::GetCurrentWindow(), name, p_open);
-
-                style.WindowMenuButtonPosition = windowMenuButtonPosBckp;
-                ImGui::PopStyleVar(); // FramePadding
-                ImGui::PopFont();
-            }
+            
             ImGui::End();
         }
     }
