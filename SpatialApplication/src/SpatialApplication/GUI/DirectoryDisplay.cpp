@@ -124,6 +124,9 @@ namespace JPL
 				const auto& selectedFile = directory.GetSelectedFile();
 				const auto selectedRelative = std::filesystem::relative(selectedFile, directory.GetPath());
 
+				if (directory.GetFiles().empty())
+					return;
+
 				// ImGui extends item size by about half spacing,
 				// which can cause first item's upper extent to be clipped
 				ShiftCursorY(ImGui::GetStyle().ItemSpacing.y * 0.5f);
