@@ -19,6 +19,8 @@
 
 #include "ImGuiWidgets.h"
 
+#include "fonts/FontIcons.h"
+
 #include "Walnut/Application.h"
 
 namespace JPL::ImGuiEx
@@ -521,6 +523,51 @@ namespace JPL::ImGuiEx
 								 &bb);
 
 		return pressed;
+	}
+
+
+	bool SettingsButtonOnHover(ImGuiID popupID, ImRect itemRect, bool bOpenOnItemRightClick, ImGuiPopupFlags flags)
+	{
+		return SettingsButtonOnHover(popupID, itemRect.Min, itemRect.Max, bOpenOnItemRightClick, flags);
+	}
+
+	bool SettingsButtonOnHover(ImGuiID popupID, ImVec2 itemMin, ImVec2 itemMax, bool bOpenOnItemRightClick, ImGuiPopupFlags flags)
+	{
+		// Handle right-click and settings button for widget settings popup
+		const ImGuiID hoveredID = ImGui::GetHoveredID();
+		const ImGuiID settingsButtonID = ImGui::GetID((const char*)(ICON_jplsa_GEAR));
+
+		if (bOpenOnItemRightClick and ImGui::IsItemClicked(ImGuiMouseButton_Right))
+			ImGui::OpenPopupEx(popupID, flags);
+
+		bool bWasClicked = false;
+
+		// Draw settings button if preview widget is hovered, or if settings popup is already open
+		if (ImGui::IsItemHovered() or hoveredID == settingsButtonID or ImGui::IsPopupOpen(popupID, flags))
+		{
+			ImGui::SetCursorScreenPos({ itemMax.x - 35.0f, itemMin.y + 5.0f });
+
+			const Colour colourH(GUI::Colours::Theme::Text);
+			const Colour colourN = colourH.WithMultipliedValue(0.8f);
+			const Colour colourP = colourH.WithMultipliedValue(1.2f);
+			const ImGuiEx::IconButtonStyle style
+			{
+				.ColourNormal = colourN,
+				.ColourHovered = colourH,
+				.ColourPressed = colourP
+			};
+
+			ImGui::SetNextItemAllowOverlap();
+
+			if (ImGuiEx::IconButton(ICON_jplsa_GEAR, ImGuiEx::IconStyle::cIconLabelBgHovered))
+			{
+				ImGui::OpenPopupEx(popupID, flags);
+			}
+
+			bWasClicked = ImGui::IsItemClicked();
+		}
+
+		return bWasClicked;
 	}
 
 	/*IconButtonStyle IconButtonStyle::Make(ImU32 colourNormal, ImU32 colourHovered, ImU32 colourPressed)

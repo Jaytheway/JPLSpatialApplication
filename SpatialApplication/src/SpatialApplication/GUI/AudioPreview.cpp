@@ -19,8 +19,7 @@
 
 #include "AudioPreview.h"
 #include "Application.h"
-
-#include "fonts/FontIcons.h"
+#include "ImGui/ImGui.h"
 
 namespace JPL::GUI
 {
@@ -89,43 +88,13 @@ namespace JPL::GUI
 		default:
 			return false;
 		}
-
-		// Handle right-click and settings button for widget settings popup
-		const ImGuiID hoveredID = ImGui::GetHoveredID();
-		const ImGuiID settingsButtonID = ImGui::GetID((const char*)(ICON_jplsa_GEAR));
-
-		if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-			ImGui::OpenPopupEx(popupID, popupFlags);
-
+	
 		bool bWasLeftClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
 
-		// Draw settings button if preview widget is hovered, or if settings popup is already open
-		if (ImGui::IsItemHovered() or hoveredID == settingsButtonID or ImGui::IsPopupOpen(popupID, popupFlags))
-		{
-			ImGui::SetCursorScreenPos({ end.x - 35.0f, start.y + 5.0f });
-
-			const Colour colourH(GUI::Colours::Theme::Text);
-			const Colour colourN = colourH.WithMultipliedValue(0.8f);
-			const Colour colourP = colourH.WithMultipliedValue(1.2f);
-			const ImGuiEx::IconButtonStyle style
-			{
-				.ColourNormal = colourN,
-				.ColourHovered = colourH,
-				.ColourPressed = colourP
-			};
-
-			ImGui::SetNextItemAllowOverlap();
-
-			if (ImGuiEx::IconButton(ICON_jplsa_GEAR, ImGuiEx::IconStyle::cIconLabelBgHovered))
-			{
-				ImGui::OpenPopupEx(popupID, popupFlags);
-			}
-
-			// This seems to be the only way to prevent click on settings button
-			// from propagating outside as click on the main widget
-			if (ImGui::IsItemClicked())
-				bWasLeftClicked = false;
-		}
+		// This seems to be the only way to prevent click on settings button
+		// from propagating outside as click on the main widget
+		if (ImGuiEx::SettingsButtonOnHover(popupID, start, end, /* trigger on item right click */ true, popupFlags))
+			bWasLeftClicked = false;
 
 		return bWasLeftClicked;
 	}

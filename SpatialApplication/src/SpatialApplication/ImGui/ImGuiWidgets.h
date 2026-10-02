@@ -137,6 +137,11 @@ namespace JPL::ImGuiEx
 	/// Pretty much identical to ImGui::Button, but with label offset when pressed
 	bool Button(const char* label, const ImVec2& size = ImVec2(0, 0));
 
+	/// Small settings icon-button that appears on item hover.
+	/// @returns true if the button was clicked
+	bool SettingsButtonOnHover(ImGuiID popupID, ImRect itemRect, bool bOpenOnItemRightClick, ImGuiPopupFlags flags = 0);
+	bool SettingsButtonOnHover(ImGuiID popupID, ImVec2 itemMin, ImVec2 itemMax, bool bOpenOnItemRightClick, ImGuiPopupFlags flags = 0);
+
 	//==========================================================================
 	/// Graphic EQ widget with vertical sliders for frequency band gains
 	/// @param frequencies if size = values.size -> treated as frequency band
