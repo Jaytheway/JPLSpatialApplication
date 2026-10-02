@@ -74,7 +74,10 @@ namespace JPL
                 };
 
                 static Flex::Layout axesHeader =
-                    Flex::Row(0, Flex::AlignHor(drawChar('X')), Flex::AlignHor(drawChar('Y')), Flex::AlignHor(drawChar('Z')));
+                    Flex::Row(0)
+                              .AddGrow(Flex::CentreHor(drawChar('X')))
+                              .AddGrow(Flex::CentreHor(drawChar('Y')))
+                              .AddGrow(Flex::CentreHor(drawChar('Z')));
                 
                 axesHeader.ComputeSizesAndDraw(ImVec2(200.0f, ImGui::GetFrameHeight()));
 

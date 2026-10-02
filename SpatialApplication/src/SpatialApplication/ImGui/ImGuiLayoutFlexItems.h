@@ -76,7 +76,7 @@ namespace JPL::ImGuiEx::Flex
 	template<CElement Element>
 	auto CentreHor(Element&& element)
 	{
-		return RowGrow(0, Spring(), std::forward<Element>(element), Spring());
+		return Row(0, Spring(), std::forward<Element>(element), Spring());
 	}
 
 	/// Align item horizontally to middle third of the available space.
