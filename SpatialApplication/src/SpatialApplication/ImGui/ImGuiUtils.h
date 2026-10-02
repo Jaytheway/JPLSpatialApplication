@@ -160,5 +160,15 @@ namespace JPL::ImGuiEx
 	inline void ShiftCursorY(float distance) { ImGui::SetCursorPosY(ImGui::GetCursorPosY() + distance); }
 	inline void ShiftCursor(ImVec2 amount) { ImGui::SetCursorPos(ImGui::GetCursorPos() + amount); }
 	inline void ShiftCursor(float x, float y) { ShiftCursor(ImVec2(x, y)); }
+	
+	//=========================================================================================
+	[[nodiscard]] JPL_INLINE ImRect GetContentRect() { const ImVec2 bbMin = ImGui::GetCursorScreenPos(); return ImRect(bbMin, bbMin + ImGui::GetContentRegionAvail()); }
+	
+	//=========================================================================================
+	[[nodiscard]] JPL_INLINE float CentreSize(float size, float bounds) { return (bounds - size) * 0.5f; }
+	[[nodiscard]] JPL_INLINE ImVec2 CentreSize(ImVec2 size, ImVec2 bounds) { return (bounds - size) * 0.5f; }
+	JPL_INLINE void CentreCursorX(float size, float width) { ShiftCursorX(CentreSize(size, width)); }
+	JPL_INLINE void CentreCursorY(float size, float height) { ShiftCursorY(CentreSize(size, height)); }
+	JPL_INLINE void CentreCursor(ImVec2 size, ImVec2 bounds) { ShiftCursor(CentreSize(size, bounds)); }
 
 } // namespace JPL::ImGuiEx
