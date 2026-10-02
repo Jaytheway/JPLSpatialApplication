@@ -161,15 +161,15 @@ namespace JPL::ImGuiEx
 
         ImGui::SetNextWindowClass(&windowClass);
 
-        if (p_open == nullptr or (*p_open) == true)
+        bool bDrawCustomTitleBar = !(config.Flags & ImGuiWindowFlags_NoTitleBar);
+
+        //? Currently dock host is drawn outside of this call and uses different font and frame padding values,
+        //? which breaks our customization hack. So we just ingore dockeck windows.
+        ImGuiWindow* existingWindow = ImGui::FindWindowByName(name);
+        bDrawCustomTitleBar = bDrawCustomTitleBar and not (existingWindow and existingWindow->DockIsActive);
+
+        if (p_open == nullptr or (*p_open) == true or not bDrawCustomTitleBar)
         {
-            bool bDrawCustomTitleBar = !(config.Flags & ImGuiWindowFlags_NoTitleBar);
-
-            //? Currently dock host is drawn outside of this call and uses different font and frame padding values,
-            //? which breaks our customization hack. So we just ingore dockeck windows.
-            ImGuiWindow* existingWindow = ImGui::FindWindowByName(name);
-            bDrawCustomTitleBar = bDrawCustomTitleBar and not (existingWindow and existingWindow->DockIsActive);
-
             // Increase the title bar height and set bold font
             if (bDrawCustomTitleBar)
             {
@@ -182,8 +182,8 @@ namespace JPL::ImGuiEx
             auto& style = ImGui::GetStyle();
             const auto windowMenuButtonPosBckp = style.WindowMenuButtonPosition;
             style.WindowMenuButtonPosition = ImGuiDir_None;
-
-            const bool bVisible = ImGui::Begin(name, nullptr, config.Flags);
+           
+            const bool bVisible = ImGui::Begin(name, bDrawCustomTitleBar ? nullptr : p_open, config.Flags);
 
             style.WindowMenuButtonPosition = windowMenuButtonPosBckp;
 
