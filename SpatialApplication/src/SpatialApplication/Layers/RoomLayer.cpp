@@ -70,10 +70,6 @@ struct std::formatter<JPL::simd>
 
 namespace JPL
 {
-	{
-	};
-
-
 	//==========================================================================
 	RoomLayer::RoomLayer(const std::shared_ptr<DirectSoundModel>& directSoundModel,
 						 const std::shared_ptr<LateReverbModel>& lateReverbModel,
@@ -337,12 +333,6 @@ namespace JPL
 			}
 
 		}, nullptr, config);
-		{
-			{
-				{
-
-#endif
-
 	}
 
 	void RoomLayer::SetNumChannelsForERs(uint32_t numChannels)

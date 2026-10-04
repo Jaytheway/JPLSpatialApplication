@@ -159,8 +159,7 @@ namespace JPL
 		TraceResults<Intersection> traceResults;
 		mTracer.Trace(*this, mListener.Position, parameters, traceResults);
 
-		auto* cachePtr = &mCache;
-		std::span cacheAdapter(&cachePtr, 1);
+		std::span cacheAdapter(&mCache, 1);
 		std::span receivers(&mSource, 1);
 		mTracer.ProcessTraces(*this, mListener, traceResults, receivers, cacheAdapter);
 	}

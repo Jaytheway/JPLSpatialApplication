@@ -31,7 +31,7 @@
 #include "GUI/AirAbsorptionGUI.h"
 #include "GUI/DirectoryDisplay.h"
 #include "GUI/VBAPVisualization.h"
-#include "GUI/PerformanceGUI.h"
+//#include "GUI/PerformanceGUI.h"
 #include "GUI/ConsoleLogGUI.h"
 
 #include "Model/VBAPVisualizationModel.h"

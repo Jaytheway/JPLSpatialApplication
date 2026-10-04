@@ -207,7 +207,7 @@ namespace JPL
 	//==========================================================================
 	namespace Coro
 	{
-	template<class T>
+		template<class T>
 		struct PropertyAwaiter;
 	}
 
