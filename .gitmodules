@@ -5,3 +5,7 @@
 [submodule "SpatialApplication/vendor/JPLSpatial"]
 	path = SpatialApplication/vendor/JPLSpatial
 	url = https://github.com/Jaytheway/JPLSpatial
+
+[submodule "SpatialApplication/vendor/Walnut"]
+	path = SpatialApplication/vendor/Walnut
+	url = https://github.com/Jaytheway/WalnutCMake
