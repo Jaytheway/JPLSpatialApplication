@@ -100,7 +100,6 @@ target_compile_definitions(JPLSpatialApplication
     $<$<NOT:$<CONFIG:Debug>>:NDEBUG>
     $<$<BOOL:${BUILD_TESTING}>:JPL_TESTS>
   PUBLIC
-    JPL_HAS_PATH_TRACING=1
     JPL_HAS_BEAM_TRACING=0
 )
 

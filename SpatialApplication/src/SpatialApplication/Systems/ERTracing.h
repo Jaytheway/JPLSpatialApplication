@@ -22,10 +22,6 @@
 #include "Model/RoomModel.h"
 #include "Geometry/SimpleGeometry.h"
 
-#ifndef JPL_HAS_PATH_TRACING
-#define JPL_HAS_PATH_TRACING 1
-#endif // !JPL_HAS_PATH_TRACING
-
 #include "JPLSpatial/AcousticMaterial.h"
 
 #include "JPLSpatial/Math/MinimalVec3.h"
