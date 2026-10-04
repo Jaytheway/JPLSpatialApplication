@@ -205,7 +205,12 @@ namespace JPL
 	};
 
 	//==========================================================================
+	namespace Coro
+	{
 	template<class T>
+		struct PropertyAwaiter;
+	}
+
 	template<class T, class Equal = std::equal_to<T>>
 	class Property : public PropertyChangeBroadcaster<T>
 	{
@@ -284,6 +289,43 @@ namespace JPL
 
 		private:
 			Property<T>* mProperty;
+		};
+
+		/// Coroutine Awaiter for property update.
+		/// Returns from co_await only if data was updated while waiting.
+		/// 
+		/// Meant to be used as temporary object in co_await expression:
+		/// 
+		///	T nextValue co_await someProperty;
+		///
+		template<class T>
+		struct PropertyAwaiter
+		{
+			Property<T>& Parent;
+
+			bool await_ready() noexcept { return false; }
+			void await_suspend(std::coroutine_handle<> h) noexcept
+			{
+				mCoro = h;
+				Parent.AddChangeCallback<&PropertyAwaiter<T>::OnPropertyChanged>(this);
+			}
+
+			T await_resume() noexcept
+			{
+				mCoro = {};
+				T value = Parent.Get();
+				Parent.RemoveChangeCallback(this);
+				return std::move(value);
+			}
+
+			void OnPropertyChanged(const T& newValue)
+			{
+				if (mCoro)
+					mCoro.resume();
+			}
+
+		private:
+			std::coroutine_handle<> mCoro;
 		};
 	} // namespace Coro
 } // namespace JPL
