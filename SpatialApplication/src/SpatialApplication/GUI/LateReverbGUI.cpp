@@ -136,8 +136,8 @@ namespace JPL
 							.AddFixed(frameHeight,
 									  Flex::Labeled(ERLevelSlider, "ER Level", sliderLabelSize),
 									  Flex::Labeled(LRLevelSlider, "Reverb Level", sliderLabelSize),
-									  showIRCheckbox)))
-			.AddFixed(160.0f, Flex::Labeled(reverbSourceCombo, "Source"));
+									  showIRCheckbox)));
+			//.AddFixed(160.0f, Flex::Labeled(reverbSourceCombo, "Source"));
 
 		layout.ComputeSizesAndDraw(ImGui::GetContentRegionAvail());
 	}
