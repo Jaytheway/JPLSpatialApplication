@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "GUI/SpeakerPolarPattern.h"
 #include "Model/VBAPVisualizationModel.h"
 #include "Processing/Panner.h"
 #include "Utility/MVCUtils.h"
@@ -102,8 +103,9 @@ namespace JPL
 
 	private:
 		std::shared_ptr<VBAPVisualizationModel> mModel;
+		std::shared_ptr<VBAPSpeakerViewModel> mSpeakerModel;
 
-		std::unique_ptr<JPLPanner> mPanner;
+		std::shared_ptr<JPLPanner> mPanner;
 		JPLSourceLayoutHandle mSourceLayout;
 
 		JPL::NamedChannelMask mSourceChannelSet;
@@ -112,5 +114,7 @@ namespace JPL
 		SourcePanningVisualizationCallback mChannelPoints;
 		SpeakerVisualization mSpeakers;
 		int mLFEIndex = -1;
+
+		GUI::SpeakerPolarPattern mSpeakersPolarPattern;
 	};
 } // namespace JPL

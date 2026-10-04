@@ -6,7 +6,7 @@
 // ╚█████╔╝██║         ███████╗██║██████╔╝███████║
 //  ╚════╝ ╚═╝         ╚══════╝╚═╝╚═════╝ ╚══════╝
 //
-//   Copyright Jaroslav Pevno, JPL Spatial Application is offered under the terms of the ISC license:
+//   Copyright 2026 Jaroslav Pevno, JPL Spatial Application is offered under the terms of the ISC license:
 //
 //   Permission to use, copy, modify, and/or distribute this software for any purpose with or
 //   without fee is hereby granted, provided that the above copyright notice and this permission
@@ -19,33 +19,36 @@
 
 #pragma once
 
-#include "Utility/MVCUtils.h"
-#include "Model/VBAPModel.h"
+#include "CoreInclude.h"
 
-#include <JPLSpatial/Math/MinimalVec3.h>
-#include <JPLSpatial/ChannelMap.h>
+#include <memory>
 
 namespace JPL
 {
-	// Speaker view settings
-	class VBAPSpeakerViewModel
-	{
-	public:
-		bool ShowSpeakers{ true };
-		bool ShowPolarPattern{ true };
-	};
-
-	class VBAPVisualizationModel
-	{
-	public:
-		VBAPVisualizationModel() = default;
-		~VBAPVisualizationModel() = default;
-
-		std::shared_ptr<JPL::VBAPModel> VBAPModel{ std::make_shared<JPL::VBAPModel>() };
-
-		Property<bool> ConnectToAudioPlayer{ true };
-
-		Property<JPL::NamedChannelMask> TargetChannelMap{ JPL::NamedChannelMask(JPL::ChannelMask::Stereo) };
-		Property<JPL::NamedChannelMask> SourceChannelMap{ JPL::NamedChannelMask(JPL::ChannelMask::Stereo) };
-	};
+	class JPLPanner;
 } // namespace JPL
+
+namespace JPL::GUI
+{
+	//==========================================================================
+	class SpeakerPolarPattern
+	{
+	public:
+		struct Style
+		{
+			// If set, using this colour for all channels,
+			// otherwise every channel gets its own colour.
+			uint32 Colour = 0;
+		};
+
+		explicit SpeakerPolarPattern(const Style& style = {});
+		~SpeakerPolarPattern();
+
+		void Draw(const std::weak_ptr<JPLPanner>& panner);
+		void SetStyle(const Style& newStyle);
+
+	private:
+		class Pimpl;
+		std::unique_ptr<Pimpl> mPimpl;
+	};
+} // namespace JPL::GUI

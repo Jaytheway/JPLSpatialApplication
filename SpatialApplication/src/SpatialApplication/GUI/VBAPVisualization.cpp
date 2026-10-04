@@ -19,11 +19,11 @@
 
 #include "VBAPVisualization.h"
 
+#include "GUI/PropertyWidgets.h"
+
 #include <JPLSpatial/ErrorReporting.h>
 #include <JPLSpatial/Panning/VBAPanning2D.h>
 #include <JPLSpatial/Math/MinimalQuat.h>
-
-#include "GUI/PropertyWidgets.h"
 
 #include <algorithm>
 #include <span>
@@ -57,6 +57,7 @@ namespace JPL
         static const std::vector<JPL::NamedChannelMask> ValidTrargetMasks
         {
             { JPL::ChannelMask::Stereo },
+            { JPL::ChannelMask::StereoHeadphones },
             { JPL::ChannelMask::Quad },
             { JPL::ChannelMask::Surround_4_1 },
             { JPL::ChannelMask::Surround_5_1 },
@@ -113,9 +114,15 @@ namespace JPL
         JPL_ASSERT(mModel->VBAPModel);
         mModel->VBAPModel->AddListener(this);
 
+        //! Note: we can use multiple of these if we ever want to have separate settings for different perspectives
+        mSpeakerModel = std::make_shared<VBAPSpeakerViewModel>();
+
         OnTargetChannelsChanged(mModel->TargetChannelMap.Get());
         OnSourceChannelsChanged(mModel->SourceChannelMap.Get());
         UpdatePoints();
+
+        const auto polarPatternColour = Colour(GUI::Colours::Theme::PropertyField).WithMultipliedValue(1.6f);
+        mSpeakersPolarPattern.SetStyle({ .Colour = polarPatternColour });
     }
 
     VBAPVisualization::~VBAPVisualization()
@@ -168,19 +175,22 @@ namespace JPL
                 canvasSize *= width / canvasSize.x;
         }
 
+        const ImVec2 bbMin = ImGui::GetCursorScreenPos();
+        const ImVec2 bbMax = bbMin + canvasSize;
+
         JPL::ImGuiEx::Child(label, [&]
         {
-            drawContentCallback();
-        }, { .Size = canvasSize, .ChildFlags = ImGuiChildFlags_Borders });
+            // ItemAdd is needed to be able to interact with canvas
+            ImGui::ItemAdd({ bbMin, bbMax }, ImGui::GetID(label));
 
+            drawContentCallback();
+
+        }, { .Size = canvasSize, .ChildFlags = ImGuiChildFlags_Borders });
     }
 
     void VBAPVisualization::Draw()
     {
         using namespace JPL::ImGuiEx;
-
-        static bool bDrawSpeakers = true;
-
 #if 1
         const SliderConfig sliderConfig{ .Fmt = "%.2f" };
         auto focusSlider = [&]
@@ -281,12 +291,6 @@ namespace JPL
                        "layouts not available on the user system.");
         };
 
-        auto showSpeakersCheckbox = [&]
-        {
-            // TODO: do we want undo/redo for this?
-            ImGuiEx::Checkbox("Show Speakers", bDrawSpeakers);
-        };
-
         const Flex::Params flexInput{
             .Weight = 1,
             .Size = 100.0f,
@@ -314,8 +318,7 @@ namespace JPL
                      .AddFixed(itemHeight,
                                Flex::Labeled(sourceChannelSetCombo, flexInput, "Source Channel Set", longLabelSize),
                                Flex::Labeled(outputChannelSetCombo, flexInput, "Output Channel Set", longLabelSize),
-                               connectToAudioPlayerCheckbox,
-                               showSpeakersCheckbox));
+                               connectToAudioPlayerCheckbox));
 
         propertiesLayout.ComputeSizesAndDraw(ImVec2(ImMax(370.0f, ImGui::GetContentRegionAvail().x), 300.0f));
 
@@ -437,17 +440,33 @@ namespace JPL
         const float axisSize = ImMax((availableSpace.x - ImGui::GetStyle().WindowPadding.x) * 0.5f, 4.0f);
         const ImVec2 canvasSize(axisSize, ImMin(axisSize, availableSpace.y));
 
+        const char* settingsIDStr = "Settings";
+        const ImGuiID settingsID = ImGui::GetID(settingsIDStr);
+        if (ImGui::BeginPopup(settingsIDStr))
+        {
+            GUI::PropertyCheckbox("Show Speakers", Undoable(mSpeakerModel, &VBAPSpeakerViewModel::ShowSpeakers));
+            GUI::PropertyCheckbox("Show Speakers Polar Pattern", Undoable(mSpeakerModel, &VBAPSpeakerViewModel::ShowPolarPattern));
+         
+            ImGui::EndPopup();
+        }
         LayoutHorizontal("Canvases", [&]
         {
             DrawSquareCanvas("Top-down View", canvasSize, [&]
             {
+                {
+                    const ImVec2 cursorBackup = ImGui::GetCursorScreenPos();
+                    ImGuiEx::SettingsButtonOnHover(settingsID, ImGuiEx::GetItemRect(), true);
+                    ImGui::SetCursorScreenPos(cursorBackup);
+                }
+
+                if (mSpeakerModel->ShowPolarPattern and mPanner)
+                    mSpeakersPolarPattern.Draw(mPanner);
+
                 const ImRect bounds = ImGui::GetCurrentWindow()->Rect();
                 DrawDirectionPoints(ImGui::GetWindowDrawList(), bounds);
 
-                if (bDrawSpeakers)
-                {
+                if (mSpeakerModel->ShowSpeakers)
                     DrawSpeakers(mSpeakers.Points, mLFEIndex);
-                }
             });
 
             DrawSquareCanvas("Left-side View", canvasSize, [&]
@@ -467,10 +486,8 @@ namespace JPL
 
                 DrawPointsTransformed(mChannelPoints.Points, rotation);
 
-                if (bDrawSpeakers)
-                {
+                if (mSpeakerModel->ShowSpeakers)
                     DrawSpeakersTransformed(mSpeakers.Points, rotation);
-                }
             });
         });
     }
@@ -683,7 +700,7 @@ namespace JPL
         mSourceLayout = {};
 
         // TODO: do we want to reset panner, or keep the last valid?
-        mPanner = std::make_unique<JPLPanner>();
+        mPanner = std::make_shared<JPLPanner>();
 
         if (not mPanner->Initialize(channelSet.Layout))
         {
