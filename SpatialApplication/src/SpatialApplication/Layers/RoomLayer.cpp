@@ -333,7 +333,7 @@ namespace JPL
 			{
 				// Draw info text
 				char numERLabelText[64]{};
-				std::format_to_n(numERLabelText, 64, "Specular Reflections Count: {}", mTaps.size());
+				std::format_to_n(numERLabelText, 64, "ER Tap Count: {}", mTaps.size());
 
 				const ImU32 textColour = IM_COL32(255, 255, 255, 60);
 				canvasDrawList->AddText(roomCanvasPosition + ImGui::GetStyle().ItemSpacing, textColour, numERLabelText);
