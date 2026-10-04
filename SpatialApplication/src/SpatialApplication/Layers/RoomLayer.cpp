@@ -70,11 +70,8 @@ struct std::formatter<JPL::simd>
 
 namespace JPL
 {
-	struct RayTracinMetering
 	{
-		static inline const char* Label = "Ray Tracing";
 	};
-	using PerfMeterRayTracing = PerformanceMetering<RayTracinMetering>;
 
 
 	//==========================================================================
