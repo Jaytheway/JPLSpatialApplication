@@ -47,20 +47,20 @@ namespace JPL
 
 		Property<MinimalVec3 > ListenerPosition
 		{
-			{ 11.0f / 24.0f, 1.8f / 5.0f, 14.0f / 24.0f } // % of canvas size
+			{ 4.0f / 14.0f, 1.8f / 5.0f, 6.8f / 9.0f } // % of canvas size
 			//{ 0.5f, 0.5f, 0.5f } //? temp for testing
 		};
 
 		Property<MinimalVec3 > SourcePosition
 		{
-			{ 13.0f / 24.0f, 2.6 / 5.0f, 8.0f / 24.0f } // % of canvas size
+			{ 8.4f / 14.0f, 2.6 / 5.0f, 3.4f / 9.0f } // % of canvas size
 			//{ 0.5f, 0.5f, 0.5f } //? temp for testing
 		};
 
 
 		Property<MinimalVec3> RoomSize
 		{
-			{ 24.0f, 5.0f, 24.0f }
+			{ 14.0f, 5.0f, 9.0f }
 			//{ 12.0f, 12.0f, 12.0f } //? temp for testing
 		};
 
