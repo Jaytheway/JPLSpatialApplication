@@ -325,7 +325,8 @@ namespace JPL
 
 
 #ifndef WL_DIST // just to be sure
-			ImGui::ShowDemoWindow();
+			//ImGui::ShowDemoWindow();
+			//ImPlot::ShowDemoWindow();
 #endif
 			ImGuiEx::Window("VBAP", [&]
 			{
