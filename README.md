@@ -2,7 +2,7 @@
 
 Application demonstrating some of the capabilities of [JPL Spatial](https://github.com/Jaytheway/JPLSpatial/).
 
-![JPL Spatial Application GUI](assets/screenshots/JPLSpatialApplicationGUI.png)
+![JPL Spatial Application GUI](assets/screenshots/JPLSpatialApplicationGUI_0.3.0.png)
 
 The GUI is drawn using [Dear ImGui](https://github.com/ocornut/imgui) library with custom framework on top.
 
