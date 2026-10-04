@@ -555,7 +555,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 	auto appData = JPL::JPLSpatialApplication::DeserializeAppData(JPL::cAppDataFilename);
 
 	Walnut::ApplicationSpecification spec;
-	spec.Name = "JPL Spatial Application";
+	spec.Name = "JPL Spatial";
 	spec.Width = appData->WindowWidth;
 	spec.Height = appData->WindowHeight;
 	
