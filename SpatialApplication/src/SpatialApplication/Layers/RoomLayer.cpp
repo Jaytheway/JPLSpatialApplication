@@ -368,8 +368,7 @@ namespace JPL
 		UpdateTaps();
 		UpdateReverbTime();
 
-		const auto sourcePosition = (mRoom->GetSourceAbsPosition() - mRoom->GetListenerAbsPosition());
-		Broadcast<&ChangeListenerType::OnSourceChanged>(sourcePosition);
+		Broadcast<&ChangeListenerType::OnSourceChanged>(GetSourceAbsPosition());
 	}
 
 	void RoomLayer::OnRoomSizeChanged(const MinimalVec3& roomSize)

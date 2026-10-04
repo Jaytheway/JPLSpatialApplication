@@ -76,6 +76,7 @@ namespace JPL
 
 		RoomModel& GetModel() { return *mRoom; }
 		void SetSourceSize(float newSize);
+		[[nodiscard]] MinimalVec3 GetSourceAbsPosition() const { return mRoom->GetSourceAbsPosition() - mRoom->GetListenerAbsPosition(); };
 
 		const simd& GetReverbTime() const { return mRT60; }
 

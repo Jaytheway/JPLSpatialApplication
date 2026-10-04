@@ -395,6 +395,9 @@ namespace JPL
 			// Just let playback layer update the entire VBAP when the room changes.
 			// This may be called after OnTapsUpdated, or not, it doesn't matter.
 			mAudioPlaybackLayer->OnChange(mAudioPlaybackLayer->GetVBAPModel().get());
+			
+			// Force update source absolute position for VBAP poitns, since it doesn't know about the room.
+			mVBAPVis->VBAPModel->SourcePosition.Set(mRoomLayer->GetSourceAbsPosition());
 		}
 
 		virtual void OnReverbTimeUpdated(const simd& newRT60) override
