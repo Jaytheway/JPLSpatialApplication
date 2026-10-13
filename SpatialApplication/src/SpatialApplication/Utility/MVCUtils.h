@@ -278,7 +278,7 @@ namespace JPL
 			explicit PropertyUpdate(Property<T>& property)
 				: mProperty(&property)
 			{
-				mProperty->AddChangeCallback<&PropertyUpdate<T>::SetData>(this);
+				mProperty->template AddChangeCallback<&PropertyUpdate<T>::SetData>(this);
 				DataUpdate<T>::SetData(mProperty->Get()); // set initial data
 			}
 
