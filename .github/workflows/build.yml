@@ -34,6 +34,12 @@ jobs:
               with:
                 submodules: recursive
 
+            # Keep this patch until the same fix is available in WalnutCMake.
+            - name: Enable MoltenVK portability in Walnut
+              if: runner.os == 'macOS'
+              shell: bash
+              run: git apply --directory=SpatialApplication/vendor/Walnut .github/patches/walnut-macos-vulkan.patch
+
             - name: Install Linux GLFW dependencies
               if: runner.os == 'Linux'
               shell: bash
@@ -49,6 +55,30 @@ jobs:
                 version: ${{ env.VULKAN_SDK_VERSION }}
                 cache: true
 
+            - name: Set up LLVM 20 and libc++ (macOS Intel)
+              if: runner.os == 'macOS'
+              shell: bash
+              run: |
+                  brew install llvm@20
+                  llvm_prefix="$(brew --prefix llvm@20)"
+                  export CC="$llvm_prefix/bin/clang"
+                  export CXX="$llvm_prefix/bin/clang++"
+                  export SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
+                  export MACOSX_DEPLOYMENT_TARGET=15.0
+                  # Select LLVM's headers AND runtime, not Apple's system libc++.
+                  export CXXFLAGS="-stdlib=libc++ -nostdinc++ -isystem $llvm_prefix/include/c++/v1"
+                  export LDFLAGS="-L$llvm_prefix/lib/c++ -L$llvm_prefix/lib/unwind -Wl,-rpath,$llvm_prefix/lib/c++ -Wl,-rpath,$llvm_prefix/lib/unwind -Wl,-headerpad_max_install_names -lunwind"
+                  {
+                      echo "CC=$CC"
+                      echo "LLVM_ROOT=$llvm_prefix"
+                      echo "CXX=$CXX"
+                      echo "SDKROOT=$SDKROOT"
+                      echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
+                      echo "CXXFLAGS=$CXXFLAGS"
+                      echo "LDFLAGS=$LDFLAGS"
+                  } >> "$GITHUB_ENV"
+                  "$CXX" --version
+
             - name: Configure (CMake)
               shell: pwsh
               run: >
@@ -63,9 +93,19 @@ jobs:
                   cmake --build "${{ env.BUILD_ROOT }}/${{ matrix.os }}"
                   --config ${{ env.CONFIG_TYPE }}
 
+            - name: Package release
+              shell: pwsh
+              run: >
+                  cpack --config "${{ env.BUILD_ROOT }}/${{ matrix.os }}/CPackConfig.cmake"
+                  -C "${{ env.CONFIG_TYPE }}"
+                  -B "${{ env.BUILD_ROOT }}/artifacts"
+
             - name: Upload artifact
               uses: actions/upload-artifact@v4
               with:
                 name: ${{ matrix.os }}
-                path: ${{ env.BUILD_ROOT }}/artifacts/${{ matrix.os }}/${{ env.CONFIG_TYPE }}
+                path: |
+                  ${{ env.BUILD_ROOT }}/artifacts/*.zip
+                  ${{ env.BUILD_ROOT }}/artifacts/*.tar.gz
                 retention-days: 3
+                if-no-files-found: error

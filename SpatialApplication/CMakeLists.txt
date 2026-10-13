@@ -1,5 +1,15 @@
 add_executable(JPLSpatialApplication)
 
+if(APPLE)
+  set_target_properties(JPLSpatialApplication PROPERTIES
+    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_GUI_IDENTIFIER "com.jaytheway.jplspatial"
+    MACOSX_BUNDLE_BUNDLE_NAME "JPL Spatial Application"
+    MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+    MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+  )
+endif()
+
 jpl_enable_ipo()
 
 #============================================================
@@ -151,6 +161,10 @@ target_include_directories(JPLSpatialApplication PRIVATE "${BUILD_ASSETS_DIR}")
 # $<TARGET_FILE_DIR:JPLSpatialApplication> resolves to the directory where the executable/library is placed
 # Append '/assets' to maintain the directory structure
 set(DEST_DIR "$<TARGET_FILE_DIR:JPLSpatialApplication>/assets")
+if(APPLE)
+  # GLFW switches to the bundle's Resources directory when it initializes.
+  set(DEST_DIR "$<TARGET_BUNDLE_CONTENT_DIR:JPLSpatialApplication>/Resources/assets")
+endif()
 
 # Add a custom command to run after the target "JPLSpatialApplication" is built
 add_custom_command(
