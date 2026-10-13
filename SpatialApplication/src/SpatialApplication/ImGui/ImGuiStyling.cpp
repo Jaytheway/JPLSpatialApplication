@@ -19,6 +19,7 @@
 
 #include "ImGuiStyling.h"
 
+#include "CoreInclude.h"
 #include "ImGui/Colour.h"
 
 #include <Walnut/ImGui/ImGuiTheme.h>
@@ -34,10 +35,10 @@ namespace JPL::GUI
 	namespace Embedded
 	{
 		#include "fonts/FontIcons.embed"
-		#include "fonts/IBMPLexSans-Light.embed"
-		#include "fonts/IBMPLexSans-Medium.embed"
-		#include "fonts/IBMPLexSans-MediumItalic.embed"
-		#include "fonts/IBMPLexSans-Bold.embed"
+		#include "fonts/IBMPlexSans-Light.embed"
+		#include "fonts/IBMPlexSans-Medium.embed"
+		#include "fonts/IBMPlexSans-MediumItalic.embed"
+		#include "fonts/IBMPlexSans-Bold.embed"
 		#include "fonts/CascadiaCode-SemiBold.embed"
 	} // namespace Embedded
 

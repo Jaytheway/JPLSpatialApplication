@@ -24,6 +24,7 @@
 #include <JPLSpatial/Utilities/TypeUtilities.h>
 
 #include <concepts>
+#include <functional>
 #include <ranges>
 #include <type_traits>
 

@@ -35,7 +35,7 @@ namespace JPL::GUI
 	{
 		ma_decoder_config config = ma_decoder_config_init(ma_format_f32, 0, 0);
 
-		uint64 numFramesRead = 0;
+		ma_uint64 numFramesRead = 0;
 		void* framesPtr = nullptr;
 		const ma_result result = ma_decode_file(filepath.string().c_str(), &config, &numFramesRead, &framesPtr);
 
