@@ -95,7 +95,7 @@ namespace JPL
 
 		virtual void OnChange(GenericChangeBroadcaster* broadcaster) override;
 
-		virtual void OnAudioFileChanged(const std::filesystem::path& newAudioFile);
+		virtual void OnAudioFileChanged(const std::filesystem::path& newAudioFile) override;
 
 		void SetEnableDirectSound(bool bShouldBeEnabled);
 

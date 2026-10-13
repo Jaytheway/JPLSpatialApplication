@@ -191,7 +191,6 @@ namespace JPL::Coro
 		struct Awaiter;
 		Awaiter operator co_await() { return Awaiter{ *this }; }
 
-	protected:
 		struct Awaiter
 		{
 			Notification& Parent;
@@ -226,7 +225,6 @@ namespace JPL::Coro
 		struct Awaiter;
 		Awaiter operator co_await() { return Awaiter{ *this }; }
 
-	protected:
 		struct Awaiter
 		{
 			Flag& Parent;
@@ -270,7 +268,6 @@ namespace JPL::Coro
 		struct Awaiter;
 		Awaiter operator co_await() { return Awaiter{ *this }; }
 
-	protected:
 		struct Awaiter
 		{
 			MultiNotification& Parent;

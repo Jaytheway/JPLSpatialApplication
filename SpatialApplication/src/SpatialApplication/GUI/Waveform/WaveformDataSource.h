@@ -123,7 +123,7 @@ namespace JPL::GUI
 		void OnSourceChanged() override;
 		void OnNewDataAwailable(const SampleData& newSampleData) override;
 
-	private:
+	public:
 		struct Awaiter
 		{
 			WaveformDataAwaitable& DataSource;
