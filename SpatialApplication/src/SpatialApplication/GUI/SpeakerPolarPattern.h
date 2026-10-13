@@ -41,7 +41,8 @@ namespace JPL::GUI
 			uint32 Colour = 0;
 		};
 
-		explicit SpeakerPolarPattern(const Style& style = {});
+		SpeakerPolarPattern();
+		explicit SpeakerPolarPattern(const Style& style);
 		~SpeakerPolarPattern();
 
 		void Draw(const std::weak_ptr<JPLPanner>& panner);

@@ -343,7 +343,7 @@ namespace JPL::ImGuiEx::Flex
         EAxis mAxis = EAxis::Vertical;
         float mSpacing = 0.0f;
         TupleType mContent;
-        float mDesiredSize[std::max(1llu, cItemCount)] = {};
+        float mDesiredSize[std::max<std::size_t>(1, cItemCount)] = {};
         float mMainAxisSize = 0.0f;
         float mCrossAxisSize = 0.0f;
     };

@@ -40,7 +40,7 @@ namespace JPL::GUI
 		ImPlotPoint SimdGetter(int index, void* data)
 		{
 			const auto [t, value] = std::invoke(*static_cast<const Callback*>(data), index);
-			return ImPlotPoint(t, value.get_lane<Lane>());
+			return ImPlotPoint(t, value.template get_lane<Lane>());
 		}
 	} // namespace Util
 

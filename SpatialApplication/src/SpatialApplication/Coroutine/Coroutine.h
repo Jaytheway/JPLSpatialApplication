@@ -152,7 +152,6 @@ namespace JPL::Coro
 		struct Awaiter;
 		Awaiter operator co_await() { return Awaiter{ *this }; }
 
-	protected:
 		struct Awaiter
 		{
 			DataUpdate& Data;

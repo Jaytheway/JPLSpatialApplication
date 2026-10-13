@@ -325,7 +325,7 @@ namespace JPL
 	{
 		mPrintBuffer.str(""); // clear buffer
 		mPrintBuffer.clear();
-		if (command.PrintTo(mPrintBuffer));
+		if (command.PrintTo(mPrintBuffer))
 			Log::Trace("Undo: {}", mPrintBuffer.view());
 	}
 

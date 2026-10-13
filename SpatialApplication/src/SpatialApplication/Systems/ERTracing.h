@@ -67,8 +67,6 @@ namespace JPL
         using SourceData = Listener;
         using ReceiverData = Source;
     public:
-        using Vec3 = JPL::MinimalVec3;
-
         ERTracer();
         ~ERTracer() = default;
 

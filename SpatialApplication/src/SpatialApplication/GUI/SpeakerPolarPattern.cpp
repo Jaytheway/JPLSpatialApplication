@@ -203,6 +203,11 @@ namespace JPL::GUI
 	};
 
 	//==========================================================================
+	SpeakerPolarPattern::SpeakerPolarPattern()
+		: SpeakerPolarPattern(Style{})
+	{
+	}
+
 	SpeakerPolarPattern::SpeakerPolarPattern(const Style& style)
 	{
 		mPimpl = std::make_unique<Pimpl>();

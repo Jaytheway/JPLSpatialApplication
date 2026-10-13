@@ -288,7 +288,7 @@ namespace JPL::ImGuiEx
 			}
 		};
 
-		(drawElement.operator()<Ts>(),...);
+		(drawElement.template operator()<Ts>(),...);
 	}
 
 
