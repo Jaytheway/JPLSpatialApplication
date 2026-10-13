@@ -307,7 +307,7 @@ namespace JPL
 			void await_suspend(std::coroutine_handle<> h) noexcept
 			{
 				mCoro = h;
-				Parent.AddChangeCallback<&PropertyAwaiter<T>::OnPropertyChanged>(this);
+				Parent.template AddChangeCallback<&PropertyAwaiter<T>::OnPropertyChanged>(this);
 			}
 
 			T await_resume() noexcept

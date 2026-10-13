@@ -279,7 +279,7 @@ namespace JPL
 		uint64 framesProcessed = 0;
 		while (framesProcessed < maxLengthInSamples)
 		{
-			const uint64 numToProcess = std::min(cBufferSize, maxLengthInSamples - framesProcessed);
+			const uint64 numToProcess = std::min<std::size_t>(cBufferSize, maxLengthInSamples - framesProcessed);
 
 			inBuffer.resize(numToProcess, 0.0f);
 			inBuffer[0] = framesProcessed == 0; // Add impulse if this is the first iteration

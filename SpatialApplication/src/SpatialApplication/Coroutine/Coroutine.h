@@ -514,7 +514,7 @@ namespace JPL::Coro
 			{ a.await_suspend(std::declval<std::coroutine_handle<>>()) };
 			{ a.await_resume() };
 			std::is_constructible_v<bool, decltype(a.await_ready())>;
-			CValidAwaitSuspendReturnValue<decltype(a.await_suspend(std::declval<std::coroutine_handle<>>()))>;
+			requires CValidAwaitSuspendReturnValue<decltype(a.await_suspend(std::declval<std::coroutine_handle<>>()))>;
 		};
 
 		template<CAwaiter T>
