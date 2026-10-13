@@ -171,14 +171,14 @@ namespace JPL::ImGuiEx::Flex
     }
 
     /// Special kind of Element that simply adds empty space
-	auto Spacing(float size = 0.0f)
+	inline auto Spacing(float size = 0.0f)
     {
         // Note: Dummy() is required by ImGui to legally extend the container size
         return Element{ .Weight = 0, .Size = size, .Content = [] { ImGui::Dummy(ImVec2(0.0f, 0.0f)); }, ._Tag = Impl::SpacerTag{} };
 	}
 
     /// Special kind of Element that takes up space with grow factor, but doesn't draw anything
-    auto Spring(uint16 weight = 1, float minSize = 0.0f)
+    inline auto Spring(uint16 weight = 1, float minSize = 0.0f)
     {
         // Note: Dummy() is required by ImGui to legally extend the container size
         return Element{ .Weight = weight, .Size = minSize, .Content = [] { ImGui::Dummy(ImVec2(0.0f, 0.0f)); }, ._Tag = Impl::SpringTag{} };
