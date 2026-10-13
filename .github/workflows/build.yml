@@ -34,12 +34,6 @@ jobs:
               with:
                 submodules: recursive
 
-            # Keep this patch until the same fix is available in WalnutCMake.
-            - name: Enable MoltenVK portability in Walnut
-              if: runner.os == 'macOS'
-              shell: bash
-              run: git apply --directory=SpatialApplication/vendor/Walnut .github/patches/walnut-macos-vulkan.patch
-
             - name: Install Linux GLFW dependencies
               if: runner.os == 'Linux'
               shell: bash
