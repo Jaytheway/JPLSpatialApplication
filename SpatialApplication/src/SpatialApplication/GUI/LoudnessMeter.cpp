@@ -399,7 +399,7 @@ namespace JPL
 		if (peakHoldLevel > 0.0f)
 		{
 			peakHoldLevel = std::min(peakHoldLevel, 1.0f);
-			const float peakHoldLevelY = std::floorf(end.y - peakHoldLevel * height);
+			const float peakHoldLevelY = std::floor(end.y - peakHoldLevel * height);
 			const ImU32 colPeakHold = IM_COL32(69, 230, 171, 255);
 
 			drawList->AddRectFilled({ start.x, peakHoldLevelY }, { end.x, peakHoldLevelY + 3.0f }, colPeakHold);
@@ -409,7 +409,7 @@ namespace JPL
 	static void DrawDBMark(ImVec2 start, ImVec2 end, float width, float height, float levelNormalized, float currentLevel, const char* dBText)
 	{
 		const float currentLevelY = end.y - currentLevel * height;
-		const float levelY = std::floorf(end.y - levelNormalized * height);
+		const float levelY = std::floor(end.y - levelNormalized * height);
 
 		const float lineLength = std::min(8.0f, width);
 		const ImVec2 linePos{ start.x, levelY };

@@ -64,7 +64,7 @@ namespace JPL::GUI
 
 	//==========================================================================
 	// Forward declaration
-	static [[nodiscard]] std::pmr::vector<typename Spectrogram::ChannelData>
+	[[nodiscard]] static std::pmr::vector<typename Spectrogram::ChannelData>
 		GenerateFFTImageData(const std::vector<float>& sampleData,
 						SpectrogramGenerator& generator,
 						uint64 numFrames,
@@ -565,7 +565,7 @@ namespace JPL::GUI
 
 			for (Chunk& chunk : channel.Chunks)
 			{
-				const std::size_t currentChunkSize = std::min(chunkSize, totalDataSize - pixelDataOffset);
+				const std::size_t currentChunkSize = std::min<std::size_t>(chunkSize, totalDataSize - pixelDataOffset);
 				const std::size_t currentChunkWidth = currentChunkSize / height;
 				
 				chunk.DataOffset = pixelDataOffset;

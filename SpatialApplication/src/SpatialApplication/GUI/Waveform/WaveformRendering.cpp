@@ -38,7 +38,7 @@
 namespace JPL::GUI
 {
 	// Forward declaration
-	static [[nodiscard]] std::vector<typename Waveform::ChannelData>
+	[[nodiscard]] static std::vector<typename Waveform::ChannelData>
 		GenerateMinMaxValues(const std::vector<float>& sampleData, uint64_t numFrames, int frameWidth);
 
 

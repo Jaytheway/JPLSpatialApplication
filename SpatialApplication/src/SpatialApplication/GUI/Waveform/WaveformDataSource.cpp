@@ -31,7 +31,7 @@
 namespace JPL::GUI
 {
 	//==========================================================================
-	static [[nodiscard]] uint64 ReadSampleData(const std::filesystem::path& filepath, std::vector<float>& outSampleData)
+	[[nodiscard]] static uint64 ReadSampleData(const std::filesystem::path& filepath, std::vector<float>& outSampleData)
 	{
 		ma_decoder_config config = ma_decoder_config_init(ma_format_f32, 0, 0);
 

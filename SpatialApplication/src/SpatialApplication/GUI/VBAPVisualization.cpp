@@ -739,7 +739,7 @@ namespace JPL
 
         if (mPanner)
         {
-            if (mSourceLayout = mPanner->InitializeSourceLayout(channelSet.Layout))
+            if ((mSourceLayout = mPanner->InitializeSourceLayout(channelSet.Layout)))
             {
                 mSourceChannelSet = channelSet;
             }
