@@ -109,7 +109,7 @@ namespace JPL
 		void SetupReverbPreview();
 
 	private:
-		Directory mDirectory{ "assets\\sound sources" };
+		Directory mDirectory{ "assets/sound sources" };
 		std::unique_ptr<AudioPlayer> mPlayer{ nullptr };
 		std::unique_ptr<Effect> mERBus{ nullptr };
 
