@@ -1,0 +1,52 @@
+name: Build
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+env:
+  BUILD_ROOT: ${{ github.workspace }}/build
+  CONFIG_TYPE: Distribution
+
+jobs:
+    build:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - os: windows-latest
+                      architecture_args: "-A x64"
+                      generator: "Visual Studio 18 2026"
+                    - os: macos-15-intel
+                      architecture_args: ""
+                      generator: "Ninja"
+                    - os: ubuntu-latest
+                      architecture_args: ""
+                      generator: "Ninja"
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Configure (CMake)
+              shell: pwsh
+              run: >
+                  cmake -S . -B "${{ env.BUILD_ROOT }}/${{ matrix.os }}"
+                  -G "${{ matrix.generator }}"
+                  ${{ matrix.architecture_args }}
+                  -DCMAKE_BUILD_TYPE=${{ env.CONFIG_TYPE }}
+
+            - name: Build
+              shell: pwsh
+              run: >
+                  cmake --build "${{ env.BUILD_ROOT }}/${{ matrix.os }}"
+                  --config ${{ env.CONFIG_TYPE }}
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                name: ${{ matrix.os }}
+                path: ${{ env.BUILD_ROOT }}/artifacts/${{ matrix.os }}/${{ env.CONFIG_TYPE }}
+                retention-days: 3
