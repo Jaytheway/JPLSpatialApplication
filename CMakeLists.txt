@@ -25,9 +25,9 @@ if(CMAKE_GENERATOR MATCHES "Visual Studio|Xcode")
   set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Distribution;Profile" CACHE STRING "" FORCE)
 endif()
 
-# Some projects may not have a Distribution or Profile config, so we need to map them to Release
-set(CMAKE_MAP_IMPORTED_CONFIG_PROFILE       Release)
-set(CMAKE_MAP_IMPORTED_CONFIG_DISTRIBUTION  MinSizeRel)
+# Map custom configurations, with an empty entry for configuration-independent libraries.
+set(CMAKE_MAP_IMPORTED_CONFIG_PROFILE       "Release;")
+set(CMAKE_MAP_IMPORTED_CONFIG_DISTRIBUTION  "MinSizeRel;Release;")
 
 include(CMakeDependentOption)
 # Ability to toggle between the static and DLL versions of the MSVC runtime library
