@@ -21,8 +21,10 @@ jobs:
                     - os: windows-latest
                       architecture_args: "-A x64"
                       generator: "Visual Studio 18 2026"
-                    - os: macos-15-intel
-                      architecture_args: ""
+                    - os: macos-15
+                      architecture_args: >-
+                        -DCMAKE_OSX_ARCHITECTURES=arm64
+                        -DCMAKE_OSX_DEPLOYMENT_TARGET=12.5
                       generator: "Ninja"
                     - os: ubuntu-latest
                       architecture_args: ""
@@ -49,7 +51,7 @@ jobs:
                 version: ${{ env.VULKAN_SDK_VERSION }}
                 cache: true
 
-            - name: Set up LLVM 20 and libc++ (macOS Intel)
+            - name: Set up LLVM 20 and libc++ (macOS)
               if: runner.os == 'macOS'
               shell: bash
               run: |
@@ -58,7 +60,7 @@ jobs:
                   export CC="$llvm_prefix/bin/clang"
                   export CXX="$llvm_prefix/bin/clang++"
                   export SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
-                  export MACOSX_DEPLOYMENT_TARGET=15.0
+                  export MACOSX_DEPLOYMENT_TARGET=12.5
                   # Select LLVM's headers AND runtime, not Apple's system libc++.
                   export CXXFLAGS="-stdlib=libc++ -nostdinc++ -isystem $llvm_prefix/include/c++/v1"
                   export LDFLAGS="-L$llvm_prefix/lib/c++ -L$llvm_prefix/lib/unwind -Wl,-rpath,$llvm_prefix/lib/c++ -Wl,-rpath,$llvm_prefix/lib/unwind -Wl,-headerpad_max_install_names -lunwind"
@@ -93,6 +95,24 @@ jobs:
                   cpack --config "${{ env.BUILD_ROOT }}/${{ matrix.os }}/CPackConfig.cmake"
                   -C "${{ env.CONFIG_TYPE }}"
                   -B "${{ env.BUILD_ROOT }}/artifacts"
+
+            # Diagnostic only: report the minimum OS of the shipped ARM64 binaries.
+            - name: Inspect macOS compatibility
+              if: runner.os == 'macOS'
+              shell: bash
+              run: |
+                  inspection_dir="$(mktemp -d "$RUNNER_TEMP/macos-compatibility.XXXXXX")"
+                  for archive in "$BUILD_ROOT"/artifacts/*.zip; do
+                      ditto -x -k "$archive" "$inspection_dir"
+                  done
+                  app="$inspection_dir/JPLSpatialApplication.app"
+                  while IFS= read -r -d '' binary; do
+                      if file -b "$binary" | grep -q 'Mach-O'; then
+                          echo "::group::${binary#"$inspection_dir/"}"
+                          xcrun vtool -arch arm64 -show-build "$binary"
+                          echo "::endgroup::"
+                      fi
+                  done < <(find "$app/Contents/MacOS" "$app/Contents/Frameworks" -type f -print0)
 
             - name: Upload artifact
               uses: actions/upload-artifact@v4
