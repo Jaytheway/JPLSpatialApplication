@@ -15,7 +15,7 @@ file(WRITE "${resources}/vulkan/icd.d/MoltenVK_icd.json" "${manifest}\n")
 # their paths relative to the app, and verifies the resulting dependencies.
 include(BundleUtilities)
 fixup_bundle("${app}" "${app}/Contents/Frameworks/libMoltenVK.dylib"
-             "${vk_sdk}/lib;${llvm}/lib/c++;${llvm}/lib/unwind")
+             "${vk_sdk}/lib;${llvm}/lib")
 # GLFW's fallback loader lookup searches Contents/MacOS.
 if(NOT EXISTS "${app}/Contents/Frameworks/libvulkan.1.dylib")
   message(FATAL_ERROR "Vulkan loader was not bundled")
